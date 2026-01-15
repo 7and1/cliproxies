@@ -1,0 +1,45 @@
+{
+  "name": "cliproxies-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2024-12-30",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "cliproxies-web",
+    },
+  ],
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://cliproxies.com",
+  },
+  "images": {
+    "binding": "IMAGES",
+  },
+  "rules": [
+    {
+      "type": "Text",
+      "fallback": {
+        "type": "Static",
+      },
+      "gs": [
+        {
+          "type": "Path",
+          "regex": "^/_next/static/(.*)$",
+        },
+        {
+          "type": "Path",
+          "regex": "^/opengraph-image.*$",
+        },
+        {
+          "type": "Path",
+          "regex": "^/.*\\.(svg|png|jpg|jpeg|webp|avif|ico)$",
+        },
+      ],
+    },
+  ],
+}

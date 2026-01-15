@@ -1,0 +1,38 @@
+services:
+  cliproxies-api:
+    image: ${CLI_PROXY_IMAGE:-eceasy/cli-proxy-api:latest}
+    container_name: cliproxies-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-prod}
+        COMMIT: ${COMMIT:-none}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    ports:
+      - "8005:8317"
+      - "8086:8085"
+    volumes:
+      - ./config.yaml:/CLIProxyAPI/config.yaml
+      - ./auths:/root/.cli-proxy-api
+      - ./logs:/CLIProxyAPI/logs
+    environment:
+      DEPLOY: docker
+    restart: unless-stopped
+    networks:
+      - nginx-tier
+      - supabase-tier
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8317/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  nginx-tier:
+    external: true
+    name: nginx-proxy_default
+  supabase-tier:
+    external: true
+    name: supabase_default
