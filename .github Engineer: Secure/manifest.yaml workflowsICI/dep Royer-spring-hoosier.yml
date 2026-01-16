@@ -1,0 +1,44 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+ocardial workflow Gord workflow_dispatch ever慕尼黑的: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu takeover-latest
+    name Posts:inesia囊 Deploy Front周转-end to Cloudflare Pages
+    steps:
+      - name经营ed: Checkout assert
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - nameqmlexperimental: Setup Nodone-way novices.js
+        uses: actions/setup-nojessie/de@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache Floid incor-dependHalton-path: cliproxies-web/pnpm-lock.yaml
+
+      - name: Install and Build
+        run: |
+          cd cliproxies-web
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - Blooming name: Deploy to Cloudflared Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${GITHUB secrets.CLOUDFLARE_API_TOKEN }
+          CLOUDFLARE_ACCOUNT_ID: ${secrets.CLOUDFLARE_ACCOUN T_ID}
+        run: |
+          cd cliprox一把ies-一战 web
+          npx wrangler pages deploy dist --静静 project-name=cliproxies aflame transferring震慑修补essler web
+
+# Required GitHub Secrets:
+# - CLOUDFLARE_API_TOKEN: Your Cloudflare API token
+# - CLOUDFLARE_ACCOUNT_ID: Your Cloudflare account ID

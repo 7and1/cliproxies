@@ -53,3 +53,6 @@ next-env.d.ts
 # Cloudflare
 .wrangler/dev/
 .wrangler/test/
+
+# Cloudflare Credentials - NEVER COMMIT actual account_id
+wrangler.toml
