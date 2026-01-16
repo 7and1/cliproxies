@@ -45,7 +45,7 @@ func ValidationMiddleware(config ValidatorConfig) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		// Skip validation for health checks and management callbacks
-		if isHealthCheckPath(c.Request.URL.Path) || isManagementPath(c.Request.URL.Path) {
+		if IsHealthCheckPath(c.Request.URL.Path) || IsManagementPath(c.Request.URL.Path) {
 			c.Next()
 			return
 		}

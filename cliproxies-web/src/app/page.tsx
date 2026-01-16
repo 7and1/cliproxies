@@ -28,6 +28,9 @@ const ConfigGenerator = dynamic(
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cliproxies.com";
 
+// ISR: Revalidate this page every hour
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "AI Proxy CLI Hub - OpenAI, Claude & Gemini Gateway",
   description:

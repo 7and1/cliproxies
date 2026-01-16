@@ -188,7 +188,7 @@ export function generateNonce(): string {
  * Security headers configuration
  */
 export const SECURITY_HEADERS = {
-  "X-DNS-Prefetch-Control": "on",
+  "X-DNS-Prefetch-Control": "off",
   "X-Frame-Options": "DENY",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -220,22 +220,34 @@ export const CSP_DIRECTIVES = {
 } as const;
 
 /**
+ * CSP directives for development (more permissive)
+ */
+export const CSP_DIRECTIVES_DEV = {
+  ...CSP_DIRECTIVES,
+  "script-src": "'self' 'unsafe-eval' 'unsafe-inline' localhost:* 127.0.0.1:*",
+  "connect-src":
+    "'self' https://*.router-for.me https://github.com https://opengraph.githubassets.com ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*",
+} as const;
+
+/**
  * Builds CSP header value
  */
 export function buildCspHeader(nonce?: string): string {
-  const directives: string[] = [];
+  const isDev = process.env.NODE_ENV === "development";
+  const directives = isDev ? CSP_DIRECTIVES_DEV : CSP_DIRECTIVES;
+  const result: string[] = [];
 
-  for (const [directive, value] of Object.entries(CSP_DIRECTIVES)) {
+  for (const [directive, value] of Object.entries(directives)) {
     if (nonce && directive === "script-src") {
-      directives.push(`${directive} 'nonce-${nonce}' ${value}`);
+      result.push(`${directive} 'nonce-${nonce}' ${value}`);
     } else if (value) {
-      directives.push(`${directive} ${value}`);
+      result.push(`${directive} ${value}`);
     } else {
-      directives.push(directive);
+      result.push(directive);
     }
   }
 
-  return directives.join("; ");
+  return result.join("; ");
 }
 
 /**
@@ -288,3 +300,190 @@ export function validatePort(port: number): { valid: boolean; error?: string } {
 
   return { valid: true };
 }
+
+/**
+ * Secure local storage wrapper with encryption warning
+ */
+export const SecureStorage = {
+  /**
+   * Store data in localStorage with security considerations
+   * WARNING: localStorage is not encrypted. Sensitive data should use encrypted session storage.
+   */
+  setItem: (key: string, value: string): void => {
+    if (typeof window === "undefined") return;
+    try {
+      // Prefix key to avoid collisions
+      const prefixedKey = `cliproxies_${key}`;
+      localStorage.setItem(prefixedKey, value);
+    } catch (e) {
+      console.warn("Failed to store in localStorage:", e);
+    }
+  },
+
+  /**
+   * Get data from localStorage
+   */
+  getItem: (key: string): string | null => {
+    if (typeof window === "undefined") return null;
+    try {
+      const prefixedKey = `cliproxies_${key}`;
+      return localStorage.getItem(prefixedKey);
+    } catch (e) {
+      console.warn("Failed to read from localStorage:", e);
+      return null;
+    }
+  },
+
+  /**
+   * Remove data from localStorage
+   */
+  removeItem: (key: string): void => {
+    if (typeof window === "undefined") return;
+    try {
+      const prefixedKey = `cliproxies_${key}`;
+      localStorage.removeItem(prefixedKey);
+    } catch (e) {
+      console.warn("Failed to remove from localStorage:", e);
+    }
+  },
+
+  /**
+   * Clear all cliproxies data from localStorage
+   */
+  clear: (): void => {
+    if (typeof window === "undefined") return;
+    try {
+      const keys = Object.keys(localStorage);
+      keys.forEach((key) => {
+        if (key.startsWith("cliproxies_")) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (e) {
+      console.warn("Failed to clear localStorage:", e);
+    }
+  },
+};
+
+/**
+ * Content Security Policy for external scripts (Subresource Integrity helper)
+ * @remarks This function is a placeholder for build-time SRI hash generation
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function generateSRIHash(_content: string): string {
+  // This would be used at build time to generate SRI hashes
+  // For runtime, we use pre-calculated hashes
+  return "";
+}
+
+/**
+ * Validates Subresource Integrity hash format
+ */
+export function validateSRIHash(hash: string): boolean {
+  // SRI hashes are in format: [algorithm]-[base64_hash]
+  const sriPattern = /^(sha256|sha384|sha512)-[A-Za-z0-9+/=]+$/;
+  return sriPattern.test(hash);
+}
+
+/**
+ * XSS Prevention: Escape HTML entities
+ */
+export function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ * Validate and sanitize user-generated content for display
+ */
+export function sanitizeUserContent(content: string): string {
+  // First escape HTML
+  let sanitized = escapeHtml(content);
+
+  // Remove any remaining potentially dangerous patterns
+  sanitized = sanitized
+    .replace(/javascript:/gi, "")
+    .replace(/on\w+\s*=/gi, "")
+    .replace(/<iframe/gi, "")
+    .replace(/<object/gi, "")
+    .replace(/<embed/gi, "");
+
+  return sanitized;
+}
+
+/**
+ * CSRF token generation for client-side
+ */
+export function generateCSRFToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
+}
+
+/**
+ * Validate CSRF token (for use with API calls)
+ */
+export function validateCSRFToken(token: string): boolean {
+  // In a real implementation, this would validate against a server-provided token
+  // For now, we check format
+  return /^[a-f0-9]{64}$/.test(token);
+}
+
+/**
+ * Detect if content type is safe for rendering
+ */
+export function isSafeContentType(contentType: string): boolean {
+  const safeTypes = [
+    "text/plain",
+    "text/html",
+    "text/css",
+    "text/javascript",
+    "application/json",
+    "application/javascript",
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/svg+xml",
+    "image/webp",
+  ];
+
+  return safeTypes.some((type) => contentType.startsWith(type));
+}
+
+/**
+ * Security configuration for the application
+ */
+export const SECURITY_CONFIG = {
+  // Enable/disable features based on environment
+  enableStrictMode: process.env.NODE_ENV === "production",
+  enableCSP: true,
+  enableHSTS: process.env.NODE_ENV === "production",
+  enableXSSProtection: true,
+  enableClickjackingProtection: true,
+
+  // CORS settings
+  allowedOrigins: process.env.ALLOWED_ORIGINS?.split(",") || [
+    "http://localhost:*",
+    "http://127.0.0.1:*",
+  ],
+
+  // Rate limiting
+  rateLimit: {
+    requests: parseInt(process.env.RATE_LIMIT_REQUESTS || "60", 10),
+    window: parseInt(process.env.RATE_LIMIT_WINDOW || "60000", 10),
+  },
+
+  // Session security
+  session: {
+    maxAge: parseInt(process.env.SESSION_MAX_AGE || "3600000", 10), // 1 hour default
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: "lax" as const,
+  },
+} as const;

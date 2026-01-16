@@ -111,6 +111,21 @@ type Config struct {
 	// RateLimit holds rate limiting configuration.
 	RateLimit RateLimitConfig `yaml:"rate-limit" json:"rate-limit"`
 
+	// JWTSecret is the secret key used for JWT token signing.
+	JWTSecret string `yaml:"jwt-secret" json:"-"`
+
+	// CircuitBreaker holds circuit breaker configuration.
+	CircuitBreaker CircuitBreakerConfig `yaml:"circuit-breaker" json:"circuit-breaker"`
+
+	// Metrics holds Prometheus metrics configuration.
+	Metrics MetricsConfig `yaml:"metrics" json:"metrics"`
+
+	// Logging holds structured logging configuration.
+	Logging LoggingConfig `yaml:"logging" json:"logging"`
+
+	// Validation holds request validation configuration.
+	Validation ValidationConfig `yaml:"validation" json:"validation"`
+
 	legacyMigrationPending bool `yaml:"-" json:"-"`
 }
 
@@ -251,6 +266,48 @@ type RateLimitConfig struct {
 	RequestsPerMinute int `yaml:"requests-per-minute" json:"requests-per-minute"`
 	// Burst is the maximum burst size allowed.
 	Burst int `yaml:"burst" json:"burst"`
+}
+
+// CircuitBreakerConfig holds circuit breaker configuration.
+type CircuitBreakerConfig struct {
+	// Enabled determines if circuit breaking is active.
+	Enabled bool `yaml:"enabled" json:"enabled"`
+	// FailureThreshold is the number of consecutive failures before tripping.
+	FailureThreshold int `yaml:"failure-threshold" json:"failure-threshold"`
+	// SuccessThreshold is the number of consecutive successes to close the breaker.
+	SuccessThreshold int `yaml:"success-threshold" json:"success-threshold"`
+	// Timeout is the duration to wait before attempting recovery (default: 60s).
+	Timeout string `yaml:"timeout" json:"timeout"`
+	// HalfOpenMaxRequests is the max requests allowed in half-open state.
+	HalfOpenMaxRequests int `yaml:"half-open-max-requests" json:"half-open-max-requests"`
+}
+
+// MetricsConfig holds Prometheus metrics configuration.
+type MetricsConfig struct {
+	// Enabled determines if metrics collection is active.
+	Enabled bool `yaml:"enabled" json:"enabled"`
+	// Path is the endpoint path for metrics (default: /metrics).
+	Path string `yaml:"path" json:"path"`
+}
+
+// LoggingConfig holds structured logging configuration.
+type LoggingConfig struct {
+	// Level is the minimum log level (debug, info, warn, error).
+	Level string `yaml:"level" json:"level"`
+	// Format is the log format (json, text).
+	Format string `yaml:"format" json:"format"`
+	// EnableStackTrace enables stack traces for errors.
+	EnableStackTrace bool `yaml:"enable-stack-trace" json:"enable-stack-trace"`
+}
+
+// ValidationConfig holds request validation configuration.
+type ValidationConfig struct {
+	// MaxBodySize is the maximum request body size in bytes.
+	MaxBodySize int `yaml:"max-body-size" json:"max-body-size"`
+	// MaxHeaderSize is the maximum header size in bytes.
+	MaxHeaderSize int `yaml:"max-header-size" json:"max-header-size"`
+	// MaxQueryLength is the maximum query string length.
+	MaxQueryLength int `yaml:"max-query-length" json:"max-query-length"`
 }
 
 // PayloadRule describes a single rule targeting a list of models with parameter updates.

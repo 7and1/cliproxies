@@ -1,35 +1,84 @@
+# Multi-stage build for optimized production image
+# Stage 1: Build stage
 FROM golang:1.24-alpine AS builder
 
-WORKDIR /app
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
 
+WORKDIR /build
+
+# Copy go mod files for dependency caching
 COPY go.mod go.sum ./
 
+# Download dependencies
 RUN go mod download
 
+# Copy source code
 COPY . .
 
+# Build arguments
 ARG VERSION=dev
 ARG COMMIT=none
 ARG BUILD_DATE=unknown
+ARG GOFLAGS=
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}'" -o ./CLIProxyAPI ./cmd/server/
+# Build the application with optimizations
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build \
+    -ldflags="-s -w -X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}'" \
+    -trimpath \
+    -o ./CLIProxyAPI \
+    ./cmd/server/
 
-FROM alpine:3.22.0
+# Verify the binary
+RUN ./CLIProxyAPI --version 2>/dev/null || true
 
-RUN apk add --no-cache tzdata
+# Stage 2: Runtime stage (minimal)
+FROM alpine:3.22.0 AS runtime
 
-RUN mkdir /CLIProxyAPI
+# Install only runtime dependencies
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    curl \
+    && rm -rf /var/cache/apk/*
 
-COPY --from=builder ./app/CLIProxyAPI /CLIProxyAPI/CLIProxyAPI
+# Create non-root user
+RUN addgroup -g 1000 -S cliuser && \
+    adduser -u 1000 -S cliuser -G cliuser -s /bin/sh -h /CLIProxyAPI
 
-COPY config.example.yaml /CLIProxyAPI/config.example.yaml
+# Set up directories
+RUN mkdir -p /CLIProxyAPI/logs /CLIProxyAPI/auths && \
+    chown -R cliuser:cliuser /CLIProxyAPI
 
+# Copy binary from builder
+COPY --from=builder --chown=cliuser:cliuser /build/CLIProxyAPI /CLIProxyAPI/CLIProxyAPI
+
+# Copy config template
+COPY --from=builder --chown=cliuser:cliuser /build/config.example.yaml /CLIProxyAPI/config.example.yaml
+
+# Set timezone
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Set user
+USER cliuser
+
+# Set working directory
 WORKDIR /CLIProxyAPI
 
-EXPOSE 8317
+# Expose ports
+# 8317: Main API port
+# 8085: Management API port
+# 1455: Claude OAuth port
+# 54545: OpenAI compatible port
+# 51121: Alternative API port
+# 11451: Amp integration port
+EXPOSE 8317 8085 1455 54545 51121 11451
 
-ENV TZ=Asia/Shanghai
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -fss http://localhost:8317/health || exit 1
 
-RUN cp /usr/share/zoneinfo/${TZ} /etc/localtime && echo "${TZ}" > /etc/timezone
-
+# Default command
 CMD ["./CLIProxyAPI"]

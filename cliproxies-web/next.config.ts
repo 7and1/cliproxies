@@ -1,14 +1,16 @@
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
-const nextConfig: NextConfig = {
-  // Ignore ESLint errors during build for production deployment
+// Bundle analyzer configuration
+const withBundleAnalyzer = (config: NextConfig) => config;
+
+const baseConfig: NextConfig = {
+  // Production builds must pass all linting and type checks
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
-  // Ignore TypeScript errors during build for production deployment
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   images: {
     remotePatterns: [
@@ -162,8 +164,10 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
-
 if (process.env.NODE_ENV === "development") {
   initOpenNextCloudflareForDev();
 }
+
+const nextConfig = withBundleAnalyzer(baseConfig);
+
+export default nextConfig;

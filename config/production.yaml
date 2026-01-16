@@ -1,0 +1,122 @@
+# Production Configuration Template for CLIProxyAPI
+# Copy this file to config.yaml and update with your production values
+
+# Server host/interface to bind to
+# Empty string binds to all interfaces (IPv4 + IPv6)
+# Use "127.0.0.1" to restrict access to local machine only (when behind nginx)
+host: "0.0.0.0"
+
+# Server port
+port: 8317
+
+# TLS settings - Recommended to use nginx/reverse proxy for SSL termination
+tls:
+  enable: false
+  cert: ""
+  key: ""
+
+# CORS settings - Update with your production domain
+cors:
+  allowed-origins:
+    - "https://cliproxies.com"
+    - "https://www.cliproxies.com"
+    - "https://staging.cliproxies.com"
+
+# Management API settings
+remote-management:
+  # Allow remote management access (recommended: false for production)
+  allow-remote: false
+
+  # Management key - REQUIRED: Set a strong secret key
+  # Generate with: openssl rand -base64 32
+  secret-key: "${MANAGEMENT_SECRET_KEY}"
+
+  # Disable control panel (recommended: true for production)
+  disable-control-panel: false
+
+  panel-github-repository: "https://github.com/router-for-me/Cli-Proxy-API-Management-Center"
+
+# Authentication directory
+auth-dir: "/CLIProxyAPI/auths"
+
+# API keys - Add your production API keys
+api-keys:
+  - "${API_KEY_1}"
+  - "${API_KEY_2}"
+
+# Debug logging - DISABLE in production
+debug: false
+
+# Commercial mode - Enable for production to reduce memory overhead
+commercial-mode: true
+
+# File logging - ENABLE in production
+logging-to-file: true
+
+# Maximum total size of log files (MB)
+logs-max-total-size-mb: 500
+
+# Usage statistics
+usage-statistics-enabled: true
+
+# Proxy configuration (if needed)
+proxy-url: "${PROXY_URL:-}"
+
+# Model prefix behavior
+force-model-prefix: false
+
+# Request retry settings
+request-retry: 3
+max-retry-interval: 30
+
+# Quota exceeded behavior
+quota-exceeded:
+  switch-project: true
+  switch-preview-model: true
+
+# Routing strategy
+routing:
+  strategy: "round-robin"
+
+# WebSocket authentication - Enable if using WebSocket API
+ws-auth: true
+
+# Database connection pool (PostgreSQL)
+database:
+  max-conns: 50
+  min-conns: 10
+  max-conn-lifetime: "2h"
+  max-conn-idle-time: "30m"
+  health-check: "1m"
+
+# Rate limiting - ENABLE for production
+rate-limit:
+  enabled: true
+  requests-per-minute: 100
+  burst: 20
+
+# Proxy Grid configuration
+proxygrid:
+  enabled: false
+  base-url: ""
+  secret: ""
+  timeout: 30
+
+# Example provider configurations
+# Update these with your actual provider credentials
+# gemini-api-key:
+#   - api-key: "${GEMINI_API_KEY}"
+#     prefix: "gemini"
+
+# claude-api-key:
+#   - api-key: "${CLAUDE_API_KEY}"
+#     prefix: "claude"
+
+# codex-api-key:
+#   - api-key: "${CODEX_API_KEY}"
+#     prefix: "codex"
+
+# Amp Integration
+# ampcode:
+#   upstream-url: "https://ampcode.com"
+#   upstream-api-key: "${AMP_API_KEY}"

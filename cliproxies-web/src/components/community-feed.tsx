@@ -1,13 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -18,7 +12,6 @@ import {
   Loader2,
   RefreshCw,
 } from "lucide-react";
-import Link from "next/link";
 
 interface HackerNewsItem {
   id: number;
@@ -30,15 +23,16 @@ interface HackerNewsItem {
   descendants: number;
 }
 
-interface RedditItem {
-  id: string;
-  title: string;
-  url: string;
-  score: number;
-  numComments: number;
-  subreddit: string;
-  created: number;
-}
+// RedditItem interface reserved for future use
+// interface RedditItem {
+//   id: string;
+//   title: string;
+//   url: string;
+//   score: number;
+//   numComments: number;
+//   subreddit: string;
+//   created: number;
+// }
 
 interface YouTubeItem {
   id: string;
@@ -78,46 +72,50 @@ export function CommunityFeed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async (showRefreshLoader = false) => {
-    if (!showRefreshLoader) setLoading(true);
-    setError(null);
+  const fetchData = useCallback(
+    async (showRefreshLoader = false) => {
+      if (!showRefreshLoader) setLoading(true);
+      setError(null);
 
-    try {
-      // Fetch HackerNews stories
-      if (activeTab === "hackernews") {
-        const hnResponse = await fetch(
-          "/api/proxygrid/content/hackernews?type=top",
-          {
-            next: { revalidate: 900 }, // 15 minutes
-          },
-        );
-        if (!hnResponse.ok) throw new Error("Failed to fetch HackerNews data");
-        const hnData = await hnResponse.json();
-        setHackerNewsData(hnData.slice(0, 5));
-      }
+      try {
+        // Fetch HackerNews stories
+        if (activeTab === "hackernews") {
+          const hnResponse = await fetch(
+            "/api/proxygrid/content/hackernews?type=top",
+            {
+              next: { revalidate: 900 }, // 15 minutes
+            },
+          );
+          if (!hnResponse.ok)
+            throw new Error("Failed to fetch HackerNews data");
+          const hnData = await hnResponse.json();
+          setHackerNewsData(hnData.slice(0, 5));
+        }
 
-      // Fetch YouTube videos
-      if (activeTab === "youtube") {
-        const ytResponse = await fetch(
-          "/api/proxygrid/search/youtube?q=Claude%20Code%20proxy%20CLI",
-          {
-            next: { revalidate: 3600 }, // 1 hour
-          },
-        );
-        if (!ytResponse.ok) throw new Error("Failed to fetch YouTube data");
-        const ytData = await ytResponse.json();
-        setYouTubeData(ytData.slice(0, 5));
+        // Fetch YouTube videos
+        if (activeTab === "youtube") {
+          const ytResponse = await fetch(
+            "/api/proxygrid/search/youtube?q=Claude%20Code%20proxy%20CLI",
+            {
+              next: { revalidate: 3600 }, // 1 hour
+            },
+          );
+          if (!ytResponse.ok) throw new Error("Failed to fetch YouTube data");
+          const ytData = await ytResponse.json();
+          setYouTubeData(ytData.slice(0, 5));
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [activeTab],
+  );
 
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, [fetchData]);
 
   const handleRefresh = () => {
     fetchData(true);
@@ -254,10 +252,12 @@ export function CommunityFeed() {
                     rel="noopener noreferrer"
                   >
                     <div className="aspect-video bg-muted relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={item.thumbnail}
                         alt={item.title}
                         className="w-full h-full object-cover"
+                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-black/20 hover:bg-black/10 transition-colors flex items-center justify-center">
                         <div className="w-12 h-12 rounded-full bg-black/60 flex items-center justify-center">

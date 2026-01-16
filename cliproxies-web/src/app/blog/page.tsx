@@ -12,9 +12,8 @@ import {
 import { JsonLd } from "@/components/json-ld";
 import { BookOpen, TrendingUp, Code, Zap } from "lucide-react";
 
-export const runtime = "edge";
-
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cliproxies.com";
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Blog - AI Proxy CLI Guides, Tutorials & News",

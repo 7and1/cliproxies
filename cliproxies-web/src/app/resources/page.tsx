@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/copy-button";
 import {
   Card,
   CardHeader,
@@ -11,6 +12,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { JsonLd } from "@/components/json-ld";
+import { CommunityFeed } from "@/components/community-feed";
 import {
   BookOpen,
   Youtube,
@@ -20,9 +22,8 @@ import {
   Zap,
 } from "lucide-react";
 
-export const runtime = "edge";
-
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cliproxies.com";
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Resources - AI Proxy CLI Documentation, Guides & Community",
@@ -257,14 +258,10 @@ function CodeSnippetCard({ snippet }: { snippet: (typeof codeSnippets)[0] }) {
           <pre className="overflow-x-auto rounded-lg bg-muted p-4 text-sm">
             <code className="language-{snippet.language}">{snippet.code}</code>
           </pre>
-          <Button
-            variant="ghost"
-            size="sm"
+          <CopyButton
+            text={snippet.code}
             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={() => navigator.clipboard.writeText(snippet.code)}
-          >
-            Copy
-          </Button>
+          />
         </div>
         <Badge variant="outline" className="mt-3 text-xs">
           {snippet.language}

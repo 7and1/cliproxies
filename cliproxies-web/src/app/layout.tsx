@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { RootJsonLd } from "@/components/json-ld";
 import { SkipLink } from "@/components/skip-link";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Dynamically import WebVitals to avoid blocking initial render
 const WebVitals = dynamic(() =>
@@ -159,13 +160,15 @@ export default function RootLayout({
         <RootJsonLd />
         <SkipLink />
         <WebVitals />
-        <div className="relative flex min-h-screen flex-col">
-          <SiteHeader />
-          <main id="main-content" className="flex-1">
-            {children}
-          </main>
-          <SiteFooter />
-        </div>
+        <ErrorBoundary>
+          <div className="relative flex min-h-screen flex-col">
+            <SiteHeader />
+            <main id="main-content" className="flex-1">
+              {children}
+            </main>
+            <SiteFooter />
+          </div>
+        </ErrorBoundary>
       </body>
     </html>
   );

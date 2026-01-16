@@ -1,0 +1,132 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to rollback"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - staging
+          - production
+      deployment_id:
+        description: "Specific deployment ID to rollback to (leave empty for previous)"
+        required: false
+        type: string
+
+jobs:
+  rollback-production:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'production'
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Confirm rollback
+        run: |
+          echo "Rolling back PRODUCTION environment"
+          echo "This will revert to the previous stable deployment"
+
+      - name: Execute rollback on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOYMENT_ID: ${{ github.event.inputs.deployment_id || '' }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: DEPLOYMENT_ID
+          script_stop: true
+          script: |
+            set -e
+            cd /opt/docker-projects/standalone-apps/cliproxies
+
+            if [ -n "$DEPLOYMENT_ID" ]; then
+              ./scripts/rollback.sh "$DEPLOYMENT_ID"
+            else
+              ./scripts/rollback.sh
+            fi
+
+            # Health check after rollback
+            sleep 5
+            if ! curl -sf http://localhost:8317/health; then
+              echo "WARNING: Service health check failed after rollback"
+              exit 1
+            fi
+
+            echo "Rollback completed successfully"
+
+      - name: Verify rollback
+        run: |
+          # Wait for DNS propagation
+          sleep 30
+
+          # Health check
+          if ! curl -sf https://cliproxies.com/health; then
+            echo "ERROR: Production health check failed after rollback"
+            exit 1
+          fi
+
+          echo "Rollback verified - service is healthy"
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: "warning"
+          text: |
+            PRODUCTION ROLLBACK EXECUTED
+            Initiated by: ${{ github.actor }}
+            Deployment ID: ${{ github.event.inputs.deployment_id || 'previous' }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  rollback-staging:
+    name: Rollback Staging
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'staging'
+    environment:
+      name: staging
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Execute rollback on VPS (Staging)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOYMENT_ID: ${{ github.event.inputs.deployment_id || '' }}
+        with:
+          host: ${{ secrets.VPS_STAGING_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: DEPLOYMENT_ID
+          script_stop: true
+          script: |
+            set -e
+            cd /opt/docker-projects/standalone-apps/cliproxies-staging
+
+            if [ -n "$DEPLOYMENT_ID" ]; then
+              ./scripts/rollback.sh "$DEPLOYMENT_ID"
+            else
+              ./scripts/rollback.sh
+            fi
+
+            echo "Staging rollback completed"
+
+      - name: Notify rollback (Staging)
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: "warning"
+          text: |
+            STAGING ROLLBACK EXECUTED
+            Initiated by: ${{ github.actor }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true

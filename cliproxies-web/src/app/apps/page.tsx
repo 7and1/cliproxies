@@ -15,6 +15,9 @@ import { Search, Filter } from "lucide-react";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cliproxies.com";
 
+// Revalidate this page every hour (3600 seconds)
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "Ecosystem Apps - CLIProxyAPI Clients Directory",
   description:

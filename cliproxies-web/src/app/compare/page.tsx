@@ -14,6 +14,9 @@ import { Check, X, ArrowRight, BookOpen } from "lucide-react";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cliproxies.com";
 
+// Revalidate this page every 6 hours (21600 seconds)
+export const revalidate = 21600;
+
 export const metadata: Metadata = {
   title: "Compare - AI Proxy CLI Tools & OpenAI Proxy Alternatives",
   description:

@@ -48,7 +48,6 @@ const YOUTUBE_ENDPOINTS = ["/video/youtube"];
  * - /api/proxygrid/commerce/amazon/:asin
  * - /api/proxygrid/commerce/crunchbase/:slug
  */
-export const runtime = "edge";
 
 /**
  * Validates the request based on the endpoint

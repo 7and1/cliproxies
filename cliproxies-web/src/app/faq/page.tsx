@@ -12,9 +12,11 @@ import {
   Github,
 } from "lucide-react";
 
-export const runtime = "edge";
+// ISR: Revalidate this page every 6 hours
+export const revalidate = 21600;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cliproxies.com";
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "FAQ - Frequently Asked Questions about CLIProxyAPI",
@@ -423,8 +425,8 @@ export default function FAQPage() {
         <section className="rounded-2xl border border-primary/40 bg-card/70 p-8 text-center">
           <h2 className="text-xl font-semibold mb-2">Still need help?</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-            Can't find the answer you're looking for? Reach out to the community
-            or check the documentation for more information.
+            Can&apos;t find the answer you&apos;re looking for? Reach out to the
+            community or check the documentation for more information.
           </p>
           <div className="flex justify-center gap-3">
             <Button asChild>

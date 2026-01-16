@@ -18,3 +18,11 @@ export { Toaster, type ToastProps, toastVariants } from "./toast";
 // Utility Components
 export { PageLoader, InlineLoader, SkeletonCard } from "./loading";
 export { EmptyState } from "./empty-state";
+export {
+  Skeleton,
+  TextSkeleton,
+  CardSkeleton,
+  TableSkeleton,
+  HeroSkeleton,
+} from "./skeleton";
+export { OptimizedImage, Avatar } from "./image";

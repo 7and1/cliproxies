@@ -21,6 +21,7 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/cmd"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/config"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/logging"
+	managementsecurity "github.com/router-for-me/CLIProxyAPI/v6/internal/security"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/managementasset"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/misc"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/store"
@@ -405,6 +406,11 @@ func main() {
 	usage.SetStatisticsEnabled(cfg.UsageStatisticsEnabled)
 	coreauth.SetQuotaCooldownDisabled(cfg.DisableCooling)
 
+	// Validate secrets at startup for security
+	if err := validateSecretsAtStartup(cfg); err != nil {
+		log.Warnf("Secrets validation warning: %v", err)
+	}
+
 	if err = logging.ConfigureLogOutput(cfg); err != nil {
 		log.Errorf("failed to configure log output: %v", err)
 		return
@@ -476,4 +482,47 @@ func main() {
 		managementasset.StartAutoUpdater(context.Background(), configFilePath)
 		cmd.StartService(cfg, configFilePath, password)
 	}
+}
+
+// validateSecretsAtStartup validates that required secrets are properly configured
+// and meet minimum security requirements. Returns a warning if secrets are not optimal.
+func validateSecretsAtStartup(cfg *config.Config) error {
+	validator := managementsecurity.NewSecretValidator()
+	var warnings []string
+
+	// Check if management secret is set but weak
+	if cfg.RemoteManagement.SecretKey != "" {
+		if err := validator.Validate(cfg.RemoteManagement.SecretKey); err != nil {
+			warnings = append(warnings, fmt.Sprintf("management password is weak: %v", err))
+		}
+	} else {
+		warnings = append(warnings, "management password is not set; management API will be disabled")
+	}
+
+	// Check API keys for proper format
+	for i, key := range cfg.APIKeys {
+		if err := validator.ValidateAPIKey(key); err != nil {
+			warnings = append(warnings, fmt.Sprintf("API key at index %d is weak: %v", i, err))
+		}
+	}
+
+	// Check for default/example values that should be changed
+	defaultValues := []string{
+		"your-api-key-1", "your-api-key-2", "your-api-key-3",
+		"change-me", "changeme", "password", "123456",
+	}
+	for _, key := range cfg.APIKeys {
+		for _, def := range defaultValues {
+			if key == def {
+				warnings = append(warnings, "API key contains default/example value; should be changed")
+				break
+			}
+		}
+	}
+
+	if len(warnings) > 0 {
+		return fmt.Errorf("%d security warning(s): %s", len(warnings), strings.Join(warnings, "; "))
+	}
+
+	return nil
 }

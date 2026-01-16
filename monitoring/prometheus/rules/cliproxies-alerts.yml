@@ -1,0 +1,187 @@
+# Alert Rules for CLIProxyAPI
+groups:
+  - name: cliproxies-api
+    interval: 30s
+    rules:
+      # Service availability alerts
+      - alert: APIServiceDown
+        expr: up{job="cliproxies-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "API service is down"
+          description: "The CLIProxyAPI service has been down for more than 1 minute."
+
+      - alert: ManagementServiceDown
+        expr: up{job="cliproxies-management"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Management API is down"
+          description: "The management API has been down for more than 5 minutes."
+
+      # High error rate alerts
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="cliproxies-api",status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="cliproxies-api"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for the last 5 minutes."
+
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="cliproxies-api",status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="cliproxies-api"}[5m]))
+          ) > 0.20
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Critical error rate detected"
+          description: "Error rate is above 20% for the last 2 minutes."
+
+      # Response time alerts
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="cliproxies-api"}[5m])) by (le)
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High response time detected"
+          description: "P95 response time is above 2 seconds for the last 10 minutes."
+
+      - alert: CriticalResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="cliproxies-api"}[5m])) by (le)
+          ) > 10
+        for: 3m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Critical response time detected"
+          description: "P95 response time is above 10 seconds for the last 3 minutes."
+
+      # Rate limit alerts
+      - alert: HighRateLimitHits
+        expr: rate(rate_limit_requests_total{job="cliproxies-api"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High rate limit hits"
+          description: "More than 10 requests/second are being rate limited."
+
+      # Resource usage alerts
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            container_memory_usage_bytes{name="cliproxies-api"}
+            /
+            container_spec_memory_limit_bytes{name="cliproxies-api"}
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High memory usage"
+          description: "Container memory usage is above 90%."
+
+      - alert: HighCPUUsage
+        expr: |
+          sum(rate(container_cpu_usage_seconds_total{name="cliproxies-api"}[5m]))
+          /
+          sum(container_spec_cpu_quota{name="cliproxies-api"} / container_spec_cpu_period{name="cliproxies-api"}) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High CPU usage"
+          description: "Container CPU usage is above 90%."
+
+      # Disk space alerts
+      - alert: LowDiskSpace
+        expr: |
+          (
+            (node_filesystem_avail_bytes{mountpoint="/CLIProxyAPI"})
+            /
+            (node_filesystem_size_bytes{mountpoint="/CLIProxyAPI"})
+          ) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Low disk space"
+          description: "Available disk space is below 10%."
+
+      # Database connection alerts
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends{datname="cliproxies"} > 45
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High database connection count"
+          description: "Database connections are above 45 (max: 50)."
+
+      - alert: DatabaseConnectionPoolExhausted
+        expr: pg_stat_database_numbackends{datname="cliproxies"} >= 50
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Database connection pool exhausted"
+          description: "All database connections are in use."
+
+  - name: cliproxies-business
+    interval: 1m
+    rules:
+      # Business metrics
+      - alert: LowRequestVolume
+        expr: sum(rate(http_requests_total{job="cliproxies-api"}[10m])) < 1
+        for: 30m
+        labels:
+          severity: info
+          team: platform
+        annotations:
+          summary: "Low request volume"
+          description: "Request volume is unusually low."
+
+      - alert: APIKeyExhaustion
+        expr: |
+          sum(rate(api_quota_exceeded_total[5m])) by (api_key)
+          /
+          sum(rate(http_requests_total[5m])) by (api_key) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High quota exhaustion for API key"
+          description: "API key {{ $labels.api_key }} is exceeding quota in more than 50% of requests."

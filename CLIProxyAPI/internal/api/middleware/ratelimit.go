@@ -69,7 +69,7 @@ func (rl *RateLimiter) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Skip rate limiting for management endpoints
 		path := c.Request.URL.Path
-		if isManagementPath(path) || isHealthCheckPath(path) {
+		if IsManagementPath(path) || IsHealthCheckPath(path) {
 			c.Next()
 			return
 		}

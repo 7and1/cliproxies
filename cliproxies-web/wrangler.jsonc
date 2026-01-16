@@ -26,19 +26,10 @@
       "fallback": {
         "type": "Static",
       },
-      "gs": [
-        {
-          "type": "Path",
-          "regex": "^/_next/static/(.*)$",
-        },
-        {
-          "type": "Path",
-          "regex": "^/opengraph-image.*$",
-        },
-        {
-          "type": "Path",
-          "regex": "^/.*\\.(svg|png|jpg|jpeg|webp|avif|ico)$",
-        },
+      "globs": [
+        "^/_next/static/(.*)$",
+        "^/opengraph-image.*$",
+        "^/.*\\.(svg|png|jpg|jpeg|webp|avif|ico)$",
       ],
     },
   ],

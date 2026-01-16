@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cliproxies.com";
 
-export const runtime = "edge";
-
 // Escape XML special characters to prevent XXE attacks
 function escapeXml(unsafe: string): string {
   return unsafe

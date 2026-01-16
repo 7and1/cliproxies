@@ -1,10 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET } from "./github-stars/route";
 import { fetchRepoStars } from "@/lib/github";
+import * as security from "@/lib/security";
 
 // Mock the fetchRepoStars function
 vi.mock("@/lib/github", () => ({
   fetchRepoStars: vi.fn(),
+}));
+
+// Mock security functions
+vi.mock("@/lib/security", () => ({
+  validateGitHubRepo: vi.fn(() => true),
+  sanitizeInput: vi.fn((input: string) => input),
+  checkRateLimit: vi.fn(() => ({
+    allowed: true,
+    remaining: 29,
+    resetAt: Date.now() + 60000,
+  })),
+  createErrorResponse: vi.fn((message: string, status: number) => {
+    return Response.json({ error: message }, { status });
+  }),
 }));
 
 describe("GitHub Stars API Route", () => {
@@ -266,6 +281,96 @@ describe("GitHub Stars API Route", () => {
 
       expect(data).toHaveProperty("stars");
       expect(typeof data.stars).toBe("number");
+    });
+  });
+
+  describe("security and rate limiting", () => {
+    it("applies rate limiting", async () => {
+      vi.spyOn(security, "checkRateLimit").mockReturnValue({
+        allowed: false,
+        resetAt: Date.now() + 60000,
+      });
+
+      const request = new Request(
+        "http://localhost/api/github-stars?repo=owner/repo",
+      );
+      const response = await GET(request);
+
+      expect(response.status).toBe(429);
+    });
+
+    it("includes rate limit headers on success", async () => {
+      vi.mocked(fetchRepoStars).mockResolvedValueOnce(100);
+      vi.spyOn(security, "checkRateLimit").mockReturnValue({
+        allowed: true,
+        remaining: 25,
+        resetAt: Date.now() + 60000,
+      });
+
+      const request = new Request(
+        "http://localhost/api/github-stars?repo=owner/repo",
+      );
+      const response = await GET(request);
+
+      expect(response.headers.get("X-RateLimit-Limit")).toBeTruthy();
+      expect(response.headers.get("X-RateLimit-Remaining")).toBeTruthy();
+    });
+
+    it("validates repo format", async () => {
+      vi.spyOn(security, "validateGitHubRepo").mockReturnValue(false);
+
+      const request = new Request(
+        "http://localhost/api/github-stars?repo=invalid-format",
+      );
+      const response = await GET(request);
+
+      expect(security.validateGitHubRepo).toHaveBeenCalled();
+      expect(response.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it("sanitizes input to prevent XSS", async () => {
+      vi.spyOn(security, "sanitizeInput").mockImplementation((input) => {
+        return input.replace(/<[^>]*>/g, "");
+      });
+
+      const request = new Request(
+        "http://localhost/api/github-stars?repo=<script>alert('xss')</script>",
+      );
+      await GET(request);
+
+      expect(security.sanitizeInput).toHaveBeenCalled();
+    });
+
+    it("extracts IP from x-forwarded-for header", async () => {
+      vi.mocked(fetchRepoStars).mockResolvedValueOnce(100);
+
+      const request = new Request(
+        "http://localhost/api/github-stars?repo=owner/repo",
+      );
+      request.headers.set("x-forwarded-for", "203.0.113.1, 70.41.3.18");
+
+      await GET(request);
+
+      const rateLimitCall = vi.mocked(security.checkRateLimit).mock.calls[0];
+      expect(rateLimitCall[0]).toContain("203.0.113.1");
+    });
+  });
+
+  describe("concurrency handling", () => {
+    it("handles concurrent requests safely", async () => {
+      vi.mocked(fetchRepoStars).mockResolvedValue(100);
+
+      const requests = [
+        new Request("http://localhost/api/github-stars?repo=owner/repo"),
+        new Request("http://localhost/api/github-stars?repo=owner/repo"),
+        new Request("http://localhost/api/github-stars?repo=owner/repo"),
+      ];
+
+      const responses = await Promise.all(requests.map((req) => GET(req)));
+
+      responses.forEach((response) => {
+        expect(response.status).toBe(200);
+      });
     });
   });
 });

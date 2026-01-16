@@ -79,3 +79,6 @@ CLIProxyAPI/AGENTS.md
 CLIProxyAPI/CLAUDE.md
 CLIProxyAPI/GEMINI.md
 CLIProxyAPI/docs
+
+# Frontend - Cloudflare credentials
+cliproxies-web/wrangler.toml

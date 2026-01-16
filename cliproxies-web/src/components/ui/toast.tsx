@@ -33,8 +33,8 @@ interface ToastProps
   icon?: React.ReactNode;
 }
 
-interface ToastTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
-interface ToastDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+type ToastTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
+type ToastDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>;
 
 const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
   ({ className, variant, children, ...props }, ref) => {

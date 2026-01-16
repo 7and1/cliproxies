@@ -1,7 +1,10 @@
+# Production Docker Compose Configuration with Blue-Green Support
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+
 services:
-  cliproxies-api:
+  cli-proxy-api-blue:
     image: ${CLI_PROXY_IMAGE:-eceasy/cli-proxy-api:latest}
-    container_name: cliproxies-api
+    container_name: cli-proxy-api-blue
     build:
       context: .
       dockerfile: Dockerfile
@@ -9,15 +12,15 @@ services:
         VERSION: ${VERSION:-prod}
         COMMIT: ${COMMIT:-none}
         BUILD_DATE: ${BUILD_DATE:-unknown}
+    environment:
+      DEPLOY: docker
     ports:
       - "8005:8317"
       - "8086:8085"
     volumes:
-      - ./config.yaml:/CLIProxyAPI/config.yaml
+      - ./config.yaml:/CLIProxyAPI/config.yaml:ro
       - ./auths:/root/.cli-proxy-api
       - ./logs:/CLIProxyAPI/logs
-    environment:
-      DEPLOY: docker
     restart: unless-stopped
     networks:
       - nginx-tier
@@ -28,6 +31,54 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  cli-proxy-api-green:
+    image: ${CLI_PROXY_IMAGE:-eceasy/cli-proxy-api:latest}
+    container_name: cli-proxy-api-green
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-prod}
+        COMMIT: ${COMMIT:-none}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    environment:
+      DEPLOY: docker
+    ports:
+      - "8007:8317"
+      - "8088:8085"
+    volumes:
+      - ./config.yaml:/CLIProxyAPI/config.yaml:ro
+      - ./auths:/root/.cli-proxy-api
+      - ./logs:/CLIProxyAPI/logs
+    restart: unless-stopped
+    networks:
+      - nginx-tier
+      - supabase-tier
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8317/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - green
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
 
 networks:
   nginx-tier:

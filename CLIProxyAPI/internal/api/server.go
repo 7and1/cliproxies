@@ -20,7 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/access"
 	managementHandlers "github.com/router-for-me/CLIProxyAPI/v6/internal/api/handlers/management"
-	"github.com/router-for-me/CLIProxyAPI/v6/internal/api/middleware"
+	apimiddleware "github.com/router-for-me/CLIProxyAPI/v6/internal/api/middleware"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/api/modules"
 	ampmodule "github.com/router-for-me/CLIProxyAPI/v6/internal/api/modules/amp"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/api/modules/proxygrid"
@@ -219,7 +219,7 @@ func NewServer(cfg *config.Config, authManager *auth.Manager, accessManager *sdk
 			requestLogger = optionState.requestLoggerFactory(cfg, configFilePath)
 		}
 		if requestLogger != nil {
-			engine.Use(middleware.RequestLoggingMiddleware(requestLogger))
+			engine.Use(apimiddleware.RequestLoggingMiddleware(requestLogger))
 			if setter, ok := requestLogger.(interface{ SetEnabled(bool) }); ok {
 				toggle = setter.SetEnabled
 			}
@@ -336,6 +336,19 @@ func (s *Server) setupRoutes() {
 	// Register health check routes
 	healthChecker := NewHealthChecker(s.cfg, s.accessManager)
 	healthChecker.RegisterRoutes(s.engine)
+
+	// Add security headers middleware
+	securityConfig := apimiddleware.DefaultSecurityHeadersConfig()
+	s.engine.Use(apimiddleware.SecurityHeadersMiddleware(securityConfig))
+
+	// Add input sanitization middleware
+	s.engine.Use(apimiddleware.InputSanitizationMiddleware())
+
+	// Add request size limiter (10MB default)
+	s.engine.Use(apimiddleware.RequestSizeLimiterMiddleware(10 * 1024 * 1024))
+
+	// Add timeout middleware for all requests (5 minutes default)
+	s.engine.Use(apimiddleware.TimeoutMiddleware(5 * time.Minute))
 
 	s.engine.Use(corsMiddleware(s.allowedOrigins))
 

@@ -1,0 +1,104 @@
+# Staging Configuration Template for CLIProxyAPI
+# This configuration is optimized for staging environment testing
+
+# Server host/interface to bind to
+host: "0.0.0.0"
+
+# Server port (can be different from production)
+port: 8317
+
+# TLS settings - usually disabled for staging (handled by reverse proxy)
+tls:
+  enable: false
+  cert: ""
+  key: ""
+
+# CORS settings - Staging domain
+cors:
+  allowed-origins:
+    - "http://localhost:*"
+    - "http://127.0.0.1:*"
+    - "https://staging.cliproxies.com"
+    - "https://*.staging.cliproxies.com"
+
+# Management API settings
+remote-management:
+  # Allow remote management for staging (easier debugging)
+  allow-remote: true
+
+  # Management key - Use a different key for staging
+  secret-key: "${STAGING_MANAGEMENT_KEY}"
+
+  # Keep control panel enabled for staging
+  disable-control-panel: false
+
+  panel-github-repository: "https://github.com/router-for-me/Cli-Proxy-API-Management-Center"
+
+# Authentication directory
+auth-dir: "/CLIProxyAPI/auths"
+
+# API keys - Staging API keys
+api-keys:
+  - "staging-test-key-1"
+  - "staging-test-key-2"
+
+# Debug logging - ENABLE in staging
+debug: true
+
+# Commercial mode - Can test with this enabled
+commercial-mode: false
+
+# File logging - ENABLE in staging for debugging
+logging-to-file: true
+
+# Lower log size limit for staging
+logs-max-total-size-mb: 200
+
+# Usage statistics - Enable for testing
+usage-statistics-enabled: true
+
+# Proxy configuration
+proxy-url: "${STAGING_PROXY_URL:-}"
+
+# Model prefix behavior
+force-model-prefix: false
+
+# Request retry settings
+request-retry: 2
+max-retry-interval: 15
+
+# Quota exceeded behavior
+quota-exceeded:
+  switch-project: true
+  switch-preview-model: true
+
+# Routing strategy
+routing:
+  strategy: "round-robin"
+
+# WebSocket authentication
+ws-auth: true
+
+# Database connection pool (smaller for staging)
+database:
+  max-conns: 20
+  min-conns: 5
+  max-conn-lifetime: "1h"
+  max-conn-idle-time: "30m"
+  health-check: "1m"
+
+# Rate limiting - Lower limits for staging
+rate-limit:
+  enabled: true
+  requests-per-minute: 50
+  burst: 10
+
+# Proxy Grid - Test mode
+proxygrid:
+  enabled: false
+  base-url: ""
+  secret: ""
+  timeout: 30
+
+# Test providers for staging
+# Use test/limited quota credentials

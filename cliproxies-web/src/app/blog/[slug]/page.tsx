@@ -713,8 +713,6 @@ export default async function BlogPostPage({
                     // Check if paragraph is a code block
                     if (paragraph.trim().startsWith("```")) {
                       const lines = paragraph.trim().split("\n");
-                      const language =
-                        lines[0].replace("```", "").trim() || "text";
                       const code = lines.slice(1, -1).join("\n");
                       return (
                         <div key={pIndex} className="relative group">

@@ -98,6 +98,35 @@ rate-limit:
   requests-per-minute: 60 # Number of requests allowed per minute
   burst: 10 # Maximum burst size
 
+# JWT secret for session token generation
+# Set a strong random string in production. Leave empty to auto-generate (not recommended for production).
+jwt-secret: ""
+
+# Circuit breaker configuration for upstream API calls
+circuit-breaker:
+  enabled: false # Enable circuit breaker (disabled by default)
+  failure-threshold: 5 # Number of consecutive failures before tripping
+  success-threshold: 2 # Number of consecutive successes to close the breaker
+  timeout: "60s" # Duration to wait before attempting recovery
+  half-open-max-requests: 1 # Maximum requests allowed in half-open state
+
+# Prometheus metrics configuration
+metrics:
+  enabled: false # Enable Prometheus metrics collection (disabled by default)
+  path: "/metrics" # Metrics endpoint path
+
+# Structured logging configuration
+logging:
+  level: "info" # Log level: debug, info, warn, error
+  format: "json" # Log format: json, text
+  enable-stack-trace: true # Enable stack traces for error logs
+
+# Request validation configuration
+validation:
+  max-body-size: 10485760 # Maximum request body size in bytes (10MB)
+  max-header-size: 8192 # Maximum header size in bytes (8KB)
+  max-query-length: 2048 # Maximum query string length (2KB)
+
 # Proxy Grid configuration (requires HTTPS endpoint and secret)
 proxygrid:
   enabled: false

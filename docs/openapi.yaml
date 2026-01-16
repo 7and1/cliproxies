@@ -1,0 +1,552 @@
+openapi: 3.1.0
+info:
+  title: CLIProxies API
+  version: 1.0.0
+  description: |
+    Multi-provider AI API gateway supporting OpenAI, Claude, Gemini, and custom providers.
+
+    ## Features
+
+    - Multi-provider support through single endpoint
+    - OpenAI-compatible `/v1/*` endpoints
+    - Claude Messages API compatibility
+    - Gemini API compatibility
+    - Streaming and non-streaming responses
+    - Function calling/tools support
+    - Multimodal input support
+    - OAuth-based authentication
+    - API key authentication
+
+    ## Authentication
+
+    All API requests require authentication using one of the following methods:
+
+    1. **API Key Authentication** - Include your API key in the `Authorization` header:
+       ```
+       Authorization: Bearer your-api-key
+       ```
+
+    2. **X-API-Key Header**:
+       ```
+       X-API-Key: your-api-key
+       ```
+
+    ## Rate Limiting
+
+    When rate limiting is enabled, responses include these headers:
+    ```
+    X-RateLimit-Limit: 60
+    X-RateLimit-Remaining: 45
+    X-RateLimit-Reset: 1705435200
+    ```
+  contact:
+    name: CLIProxies Support
+    url: https://github.com/router-for-me/CLIProxyAPI
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8317
+    description: Local development server
+  - url: https://api.cliproxies.com
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - APIKeyAuth: []
+
+tags:
+  - name: Health
+    description: Health check and monitoring endpoints
+  - name: Models
+    description: Model listing operations
+  - name: Chat
+    description: Chat completion operations
+  - name: Completions
+    description: Legacy completion operations
+  - name: Claude
+    description: Claude-specific operations
+  - name: Gemini
+    description: Gemini-specific operations
+  - name: Management
+    description: Management API endpoints
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: API key authentication using Authorization header
+    APIKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key authentication using custom header
+    ManagementAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Management Key
+      description: Management API authentication
+
+  schemas:
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+          description: The role of the message sender
+        content:
+          type: string
+          description: The message content
+          maxLength: 100000
+
+    ChatCompletionRequest:
+      type: object
+      required:
+        - model
+        - messages
+      properties:
+        model:
+          type: string
+          description: Model identifier
+          example: "gpt-4"
+        messages:
+          type: array
+          description: Array of messages representing the conversation
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+          minItems: 1
+        max_tokens:
+          type: integer
+          description: Maximum tokens to generate
+          minimum: 1
+          maximum: 100000
+          default: 100
+        temperature:
+          type: number
+          description: Sampling temperature
+          minimum: 0
+          maximum: 2
+          default: 0.7
+        top_p:
+          type: number
+          description: Nucleus sampling parameter
+          minimum: 0
+          maximum: 1
+          default: 1
+        n:
+          type: integer
+          description: Number of completions to generate
+          minimum: 1
+          maximum: 10
+          default: 1
+        stream:
+          type: boolean
+          description: Enable streaming responses
+          default: false
+        stop:
+          type: array
+          description: Sequences where the API will stop generating
+          items:
+            type: string
+        presence_penalty:
+          type: number
+          description: Presence penalty
+          minimum: -2
+          maximum: 2
+          default: 0
+        frequency_penalty:
+          type: number
+          description: Frequency penalty
+          minimum: -2
+          maximum: 2
+          default: 0
+
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the completion
+        object:
+          type: string
+          enum: [chat.completion]
+          description: Object type
+        created:
+          type: integer
+          description: Unix timestamp of creation
+        model:
+          type: string
+          description: Model used for the completion
+        choices:
+          type: array
+          description: Array of completion choices
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+                description: Index of the choice
+              message:
+                type: object
+                properties:
+                  role:
+                    type: string
+                  content:
+                    type: string
+              finish_reason:
+                type: string
+                enum: [stop, length, tool_calls, content_filter]
+                description: Reason for completion termination
+        usage:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+            completion_tokens:
+              type: integer
+            total_tokens:
+              type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Human-readable error description
+            type:
+              type: string
+              enum:
+                [
+                  invalid_request_error,
+                  authentication_error,
+                  permission_error,
+                  rate_limit_error,
+                  server_error,
+                ]
+              description: Type of error that occurred
+            code:
+              type: string
+              description: Machine-readable error code
+            param:
+              type: string
+              description: Parameter that caused the error
+
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, unhealthy]
+          description: Current health status
+        timestamp:
+          type: integer
+          description: Unix timestamp
+        checks:
+          type: object
+          description: Detailed health check results
+          additionalProperties: true
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Model identifier
+        object:
+          type: string
+          enum: [model]
+          description: Object type
+        created:
+          type: integer
+          description: Unix timestamp of model creation
+        owned_by:
+          type: string
+          description: Entity that owns the model
+
+    ModelsResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          enum: [list]
+          description: Object type
+        data:
+          type: array
+          description: Array of available models
+          items:
+            $ref: "#/components/schemas/Model"
+
+  parameters:
+    ModelPath:
+      name: model
+      in: path
+      required: true
+      description: Model identifier for Gemini API
+      schema:
+        type: string
+      example: "gemini-2.0-flash-exp"
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check endpoint
+      description: Returns the current health status of the API
+      tags: [Health]
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheckResponse"
+
+  /ready:
+    get:
+      operationId: readinessCheck
+      summary: Readiness check endpoint
+      description: Checks if the service is ready to handle requests
+      tags: [Health]
+      security: []
+      responses:
+        "200":
+          description: Service is ready
+        "503":
+          description: Service is not ready
+
+  /v1/models:
+    get:
+      operationId: listModels
+      summary: List available models
+      description: Retrieves a list of all available models across configured providers
+      tags: [Models]
+      responses:
+        "200":
+          description: List of models
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/chat/completions:
+    post:
+      operationId: createChatCompletion
+      summary: Create chat completion
+      description: Creates a model response for the given chat conversation
+      tags: [Chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatCompletionRequest"
+      responses:
+        "200":
+          description: Chat completion response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatCompletionResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/completions:
+    post:
+      operationId: createCompletion
+      summary: Create completion (legacy)
+      description: Creates a completion using the legacy API format
+      tags: [Completions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model, prompt]
+              properties:
+                model:
+                  type: string
+                prompt:
+                  type: string
+                max_tokens:
+                  type: integer
+                  default: 100
+                temperature:
+                  type: number
+                  default: 0.7
+                stream:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Completion response
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+        "429":
+          description: Rate limited
+
+  /v1/messages:
+    post:
+      operationId: createClaudeMessage
+      summary: Create Claude message
+      description: Sends a message to Claude and gets a response
+      tags: [Claude]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model, messages, max_tokens]
+              properties:
+                model:
+                  type: string
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      content:
+                        type: string
+                max_tokens:
+                  type: integer
+                  default: 4096
+                temperature:
+                  type: number
+                  default: 0.7
+      responses:
+        "200":
+          description: Claude message response
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+
+  /v1/messages/count_tokens:
+    post:
+      operationId: countTokens
+      summary: Count tokens for Claude request
+      description: Counts tokens for a Claude request without sending it
+      tags: [Claude]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model, messages]
+              properties:
+                model:
+                  type: string
+                messages:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "200":
+          description: Token count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  input_tokens:
+                    type: integer
+
+  /v1beta/models/{model}:
+    post:
+      operationId: geminiGenerateContent
+      summary: Generate content with Gemini
+      description: Generates content using the Gemini API
+      tags: [Gemini]
+      parameters:
+        - $ref: "#/components/parameters/ModelPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      parts:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            text:
+                              type: string
+                generationConfig:
+                  type: object
+                  properties:
+                    temperature:
+                      type: number
+                    maxOutputTokens:
+                      type: integer
+      responses:
+        "200":
+          description: Generated content
+        "401":
+          description: Unauthorized
+
+  /metrics:
+    get:
+      operationId: getMetrics
+      summary: Prometheus metrics
+      description: Returns Prometheus metrics for monitoring
+      tags: [Health]
+      security: []
+      responses:
+        "200":
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string

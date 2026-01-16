@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import { useOS } from "@/hooks/use-os";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,22 @@ const featureCards = [
 function HeroSectionInner() {
   const os = useOS();
   const cta = CTA_MAP[os];
+
+  // Prefetch critical routes on hover
+  useEffect(() => {
+    const prefetchRoutes = ["/apps", "/compare", "/docs", "/status"];
+    prefetchRoutes.forEach((route) => {
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        (
+          window as Window & {
+            requestIdleCallback: (cb: () => void) => number;
+          }
+        ).requestIdleCallback(() => {
+          fetch(route, { priority: "low" });
+        });
+      }
+    });
+  }, []);
 
   return (
     <section
