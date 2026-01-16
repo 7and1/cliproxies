@@ -58,5 +58,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages upload .open-next --project-name=cliproxies-web
-        working-directory: ./cliproxies-web
+          command: pages upload cliproxies-web/.open-next --project-name=cliproxies-web
