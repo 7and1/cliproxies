@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Workers
 
 on:
   push:
@@ -53,9 +53,14 @@ jobs:
           NEXT_PUBLIC_SITE_URL: "https://cliproxies.com"
           NODE_ENV: production
 
-      - name: Deploy to Cloudflare Pages
+      - name: Remove incompatible files
+        working-directory: ./cliproxies-web
+        run: rm -f .open-next/assets/_headers .open-next/assets/_redirects
+
+      - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy cliproxies-web/.open-next --project-name=cliproxies-web
+          command: deploy --name cliproxies-web
+        working-directory: ./cliproxies-web
