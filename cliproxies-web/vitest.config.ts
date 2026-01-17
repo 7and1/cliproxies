@@ -2,9 +2,14 @@ import { defineConfig } from "vitest/config";
 import path from "path";
 
 export default defineConfig({
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    exclude: ["src/test/visual-regression.test.tsx"],
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     coverage: {

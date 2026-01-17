@@ -175,6 +175,14 @@ type Server struct {
 	allowedOrigins []string
 }
 
+// Engine exposes the underlying Gin engine for tests and integrations.
+func (s *Server) Engine() *gin.Engine {
+	if s == nil {
+		return nil
+	}
+	return s.engine
+}
+
 // NewServer creates and initializes a new API server instance.
 // It sets up the Gin engine, middleware, routes, and handlers.
 //
@@ -333,10 +341,6 @@ func NewServer(cfg *config.Config, authManager *auth.Manager, accessManager *sdk
 // setupRoutes configures the API routes for the server.
 // It defines the endpoints and associates them with their respective handlers.
 func (s *Server) setupRoutes() {
-	// Register health check routes
-	healthChecker := NewHealthChecker(s.cfg, s.accessManager)
-	healthChecker.RegisterRoutes(s.engine)
-
 	// Add security headers middleware
 	securityConfig := apimiddleware.DefaultSecurityHeadersConfig()
 	s.engine.Use(apimiddleware.SecurityHeadersMiddleware(securityConfig))
@@ -351,6 +355,10 @@ func (s *Server) setupRoutes() {
 	s.engine.Use(apimiddleware.TimeoutMiddleware(5 * time.Minute))
 
 	s.engine.Use(corsMiddleware(s.allowedOrigins))
+
+	// Register health check routes (after middleware so headers apply)
+	healthChecker := NewHealthChecker(s.cfg, s.accessManager)
+	healthChecker.RegisterRoutes(s.engine)
 
 	s.engine.GET("/management.html", s.serveManagementControlPanel)
 	openaiHandlers := openai.NewOpenAIAPIHandler(s.handlers)

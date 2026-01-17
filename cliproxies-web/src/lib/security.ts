@@ -168,7 +168,7 @@ export function validateApiKey(key: string): boolean {
   return (
     typeof key === "string" &&
     key.length > 10 &&
-    key.length < 256 &&
+    key.length <= 256 &&
     !/\s/.test(key)
   );
 }

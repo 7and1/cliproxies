@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { JsonLd } from "@/components/json-ld";
 import { CommunityFeed } from "@/components/community-feed";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   BookOpen,
   Youtube,
@@ -467,17 +468,27 @@ export default function ResourcesPage() {
 
         {/* Community Feed */}
         <section className="space-y-6">
-          <Suspense
+          <ErrorBoundary
             fallback={
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-pulse text-muted-foreground">
-                  Loading community feed...
-                </div>
-              </div>
+              <Card>
+                <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                  Community feed is temporarily unavailable.
+                </CardContent>
+              </Card>
             }
           >
-            <CommunityFeed />
-          </Suspense>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-pulse text-muted-foreground">
+                    Loading community feed...
+                  </div>
+                </div>
+              }
+            >
+              <CommunityFeed />
+            </Suspense>
+          </ErrorBoundary>
         </section>
 
         {/* GitHub CTA */}

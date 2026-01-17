@@ -88,7 +88,7 @@ describe("sponsors data", () => {
       sponsors.forEach((sponsor) => {
         const isExternal = sponsor.logo.match(/^https?:\/\//);
         const isRelative = sponsor.logo.match(/^\//);
-        expect(isExternal || isRelative).toBe(true);
+        expect(Boolean(isExternal || isRelative)).toBe(true);
       });
     });
   });

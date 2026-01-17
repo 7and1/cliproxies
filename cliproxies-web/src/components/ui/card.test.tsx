@@ -47,7 +47,7 @@ describe("Card components", () => {
           <p>Content</p>
         </Card>,
       );
-      const card = screen.getByText("Content").parentElement;
+      const card = screen.getByText("Content").closest("[data-slot='card']");
       expect(card).toHaveClass("bg-card");
       expect(card).toHaveClass("rounded-xl");
       expect(card).toHaveClass("border");
@@ -85,7 +85,9 @@ describe("Card components", () => {
           <CardHeader>Header</CardHeader>
         </Card>,
       );
-      const header = screen.getByText("Header").parentElement;
+      const header = screen
+        .getByText("Header")
+        .closest("[data-slot='card-header']");
       expect(header).toHaveClass("grid");
       expect(header).toHaveClass("auto-rows-min");
     });
@@ -223,7 +225,9 @@ describe("Card components", () => {
           </CardHeader>
         </Card>,
       );
-      const action = screen.getByText("Action").parentElement;
+      const action = screen
+        .getByText("Action")
+        .closest("[data-slot='card-action']");
       expect(action).toHaveClass("col-start-2");
       expect(action).toHaveClass("row-start-1");
     });
@@ -257,7 +261,9 @@ describe("Card components", () => {
           <CardContent>Content</CardContent>
         </Card>,
       );
-      const content = screen.getByText("Content").parentElement;
+      const content = screen
+        .getByText("Content")
+        .closest("[data-slot='card-content']");
       expect(content).toHaveClass("px-6");
     });
   });
@@ -290,7 +296,9 @@ describe("Card components", () => {
           <CardFooter>Footer</CardFooter>
         </Card>,
       );
-      const footer = screen.getByText("Footer").parentElement;
+      const footer = screen
+        .getByText("Footer")
+        .closest("[data-slot='card-footer']");
       expect(footer).toHaveClass("px-6");
       expect(footer).toHaveClass("flex");
       expect(footer).toHaveClass("items-center");

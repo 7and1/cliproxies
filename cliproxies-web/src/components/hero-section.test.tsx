@@ -103,7 +103,6 @@ describe("HeroSection component", () => {
   describe("styling", () => {
     it("has section element with aria-labelledby", () => {
       render(<HeroSection />);
-      const section = screen.getByRole("region", { name: "" });
       const heroSection = document.querySelector(
         'section[aria-labelledby="hero-heading"]',
       );
@@ -196,8 +195,9 @@ describe("HeroSection component", () => {
       const section = document.querySelector(
         'section[aria-labelledby="hero-heading"]',
       );
-      expect(section).toHaveClass("gap-8");
-      expect(section?.querySelector(".md\\:grid-cols")).toBeInTheDocument();
+      const grid = section?.querySelector(".grid");
+      expect(grid).toHaveClass("gap-8");
+      expect(grid?.className).toContain("md:grid-cols-[1.2fr_0.8fr]");
     });
   });
 
@@ -246,7 +246,7 @@ describe("HeroSection component", () => {
     it("uses secondary color for badge", () => {
       render(<HeroSection />);
       const badge = screen.getByText("CLIProxyAPI ecosystem");
-      expect(badge.className).toContain("variant-secondary");
+      expect(badge.className).toContain("bg-secondary");
     });
   });
 });

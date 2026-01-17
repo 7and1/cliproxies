@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -302,13 +303,19 @@ func maskSensitiveData(data string) string {
 
 	// If the data looks like an API key (long string), mask most of it
 	if len(data) > 20 {
+		// Preserve a shorter suffix for common API key prefixes
+		if strings.HasPrefix(data, "sk-") {
+			if len(data) > 7 {
+				return data[:4] + "****" + data[len(data)-3:]
+			}
+			return data[:4] + "****"
+		}
 		return data[:4] + "****" + data[len(data)-4:]
 	}
 
 	// For shorter data, mask half
 	if len(data) > 8 {
-		half := len(data) / 2
-		return data[:half] + "****"
+		return data[:4] + "****"
 	}
 
 	// For very short data, just return as is

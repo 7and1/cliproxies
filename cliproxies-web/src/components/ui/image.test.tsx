@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { OptimizedImage, Avatar } from "./image";
 
 describe("OptimizedImage", () => {
@@ -32,17 +32,6 @@ describe("OptimizedImage", () => {
   });
 
   it("should show fallback on error", () => {
-    // Mock Image.prototype.onError to simulate error
-    const originalImage = global.Image;
-    global.Image = class MockImage {
-      onload = () => {};
-      onerror = () => {};
-      src = "";
-      constructor() {
-        setTimeout(() => this.onerror(), 0);
-      }
-    } as any;
-
     render(
       <OptimizedImage
         src="/invalid.jpg"
@@ -52,10 +41,12 @@ describe("OptimizedImage", () => {
       />,
     );
 
-    // After error state is set
-    expect(screen.getByText("Image not available")).toBeInTheDocument();
+    const img = screen.getByRole("img", { name: "Invalid image" });
+    act(() => {
+      fireEvent.error(img);
+    });
 
-    global.Image = originalImage;
+    expect(screen.getByText("Image not available")).toBeInTheDocument();
   });
 
   it("should apply custom className", () => {
@@ -104,21 +95,14 @@ describe("Avatar", () => {
   });
 
   it("should fall back to initials on image error", () => {
-    const originalImage = global.Image;
-    global.Image = class MockImage {
-      onload = () => {};
-      onerror = () => {};
-      src = "";
-      constructor() {
-        setTimeout(() => this.onerror(), 0);
-      }
-    } as any;
-
     render(<Avatar src="/invalid.jpg" alt="User" initials="US" />);
+
+    const img = screen.getByRole("img", { name: "User" });
+    act(() => {
+      fireEvent.error(img);
+    });
 
     // Should show initials after error
     expect(screen.getByText("US")).toBeInTheDocument();
-
-    global.Image = originalImage;
   });
 });

@@ -12,9 +12,9 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/auth/jwt"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/circuitbreaker"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/config"
-	"github.com/router-for-me/CLIProxyAPI/v6/internal/logging"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/logging/structured"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/metrics"
+	"github.com/router-for-me/CLIProxyAPI/v6/sdk/api/handlers"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -106,7 +106,7 @@ func GetMiddlewareChain(cfg *config.Config, components *Components) []gin.Handle
 	if cfg.Validation.MaxBodySize > 0 || cfg.Validation.MaxHeaderSize > 0 {
 		vConfig := middleware.DefaultValidatorConfig()
 		if cfg.Validation.MaxBodySize > 0 {
-			vConfig.MaxBodySize = cfg.Validation.MaxBodySize
+			vConfig.MaxBodySize = int64(cfg.Validation.MaxBodySize)
 		}
 		if cfg.Validation.MaxHeaderSize > 0 {
 			vConfig.MaxHeaderSize = cfg.Validation.MaxHeaderSize
@@ -162,7 +162,7 @@ func ApplyServerOptions(cfg *config.Config, components *Components) []api.Server
 	}
 
 	// Register additional routes
-	opts = append(opts, api.WithRouterConfigurator(func(engine *gin.Engine, handler interface{}, cfg *config.Config) {
+	opts = append(opts, api.WithRouterConfigurator(func(engine *gin.Engine, handler *handlers.BaseAPIHandler, cfg *config.Config) {
 		RegisterProductionRoutes(engine, cfg, components)
 	}))
 

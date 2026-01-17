@@ -46,11 +46,27 @@ type StructuredLogger struct {
 	requestIDKey string
 }
 
+type lockedWriter struct {
+	mu sync.Mutex
+	w  io.Writer
+}
+
+func (lw *lockedWriter) Write(p []byte) (int, error) {
+	lw.mu.Lock()
+	defer lw.mu.Unlock()
+	return lw.w.Write(p)
+}
+
 // NewStructuredLogger creates a new structured logger
 func NewStructuredLogger() *StructuredLogger {
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: time.RFC3339,
+		FieldMap: logrus.FieldMap{
+			logrus.FieldKeyMsg:   "message",
+			logrus.FieldKeyTime:  "timestamp",
+			logrus.FieldKeyLevel: "level",
+		},
 	})
 	logger.SetLevel(logrus.DebugLevel)
 
@@ -141,8 +157,25 @@ func (l *StructuredLogger) log(level logrus.Level, msg string) {
 
 // copy creates a copy of the logger with independent fields
 func (l *StructuredLogger) copy() *StructuredLogger {
+	cloned := logrus.New()
+	cloned.SetFormatter(l.logger.Formatter)
+	cloned.SetLevel(l.logger.GetLevel())
+	cloned.SetOutput(l.logger.Out)
+	cloned.ReportCaller = l.logger.ReportCaller
+
+	// Clone hooks so derived loggers preserve behavior.
+	if len(l.logger.Hooks) > 0 {
+		hooks := make(logrus.LevelHooks, len(l.logger.Hooks))
+		for level, entries := range l.logger.Hooks {
+			copied := make([]logrus.Hook, len(entries))
+			copy(copied, entries)
+			hooks[level] = copied
+		}
+		cloned.ReplaceHooks(hooks)
+	}
+
 	newLogger := &StructuredLogger{
-		logger:      l.logger,
+		logger:      cloned,
 		fields:      make(map[string]interface{}),
 		requestIDKey: l.requestIDKey,
 	}
@@ -172,7 +205,7 @@ func (l *StructuredLogger) SetLevel(level LogLevel) {
 
 // SetOutput sets the output destination
 func (l *StructuredLogger) SetOutput(w io.Writer) {
-	l.logger.SetOutput(w)
+	l.logger.SetOutput(&lockedWriter{w: w})
 }
 
 // ContextLogger provides context-aware logging
@@ -408,6 +441,7 @@ func TestStructuredLogger_Immutability(t *testing.T) {
 
 	// Change output for second logger
 	logger2 := logger1.WithField("field2", "value2")
+	logger2.SetOutput(&buf2)
 
 	logger1.Info("message 1")
 	logger2.Info("message 2")
@@ -801,9 +835,7 @@ func TestStructuredLogger_LogEntryParsing(t *testing.T) {
 func TestLogrusHook_WithStructuredLogger(t *testing.T) {
 	logger := NewStructuredLogger()
 
-	hook := test.NewGlobal()
-	logrus.AddHook(hook)
-	defer logrus.Reset()
+	hook := test.NewLocal(logger.logger)
 
 	logger.WithField("hooked", true).Info("test message")
 

@@ -13,7 +13,7 @@ interface AppCardProps {
 function AppCardInner({ app, stars }: AppCardProps) {
   return (
     <Card
-      className="group relative flex h-full flex-col gap-4 border border-border/70 glass p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-xl hover:shadow-primary/5"
+      className="group relative flex h-full flex-col gap-4 border border-border/70 bg-card/70 rounded-xl glass p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-xl hover:shadow-primary/5"
       itemScope
       itemType="https://schema.org/SoftwareApplication"
     >
@@ -57,6 +57,7 @@ function AppCardInner({ app, stars }: AppCardProps) {
             <span className="text-sm font-semibold" itemProp="ratingValue">
               {stars}
             </span>
+            <meta itemProp="ratingValue" content={String(stars)} />
             <meta itemProp="bestRating" content="100000" />
             <meta itemProp="ratingCount" content="1" />
           </div>

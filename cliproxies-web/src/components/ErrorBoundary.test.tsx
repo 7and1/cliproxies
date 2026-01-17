@@ -1,11 +1,13 @@
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ErrorBoundary } from "./ErrorBoundary";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 
 // Mock console.error to avoid cluttering test output
 const originalError = console.error;
 beforeAll(() => {
-  console.error = jest.fn();
+  console.error = vi.fn();
 });
 
 afterAll(() => {
@@ -40,7 +42,7 @@ describe("ErrorBoundary", () => {
       screen.getByRole("button", { name: /try again/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /go home/i }),
+      screen.getByRole("link", { name: /go home/i }),
     ).toBeInTheDocument();
   });
 
@@ -61,7 +63,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("should call onError prop when error occurs", () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
     const ThrowError = () => {
       throw new Error("Test error");
     };

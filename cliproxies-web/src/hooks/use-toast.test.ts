@@ -1,16 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { useToast, toast, reducer } from "./use-toast";
+import { useToast, toast, reducer, __resetToastState } from "./use-toast";
 
 describe("use-toast hook", () => {
   beforeEach(() => {
     // Clear toasts before each test
+    __resetToastState();
     vi.clearAllTimers();
     vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers();
+    act(() => {
+      vi.runOnlyPendingTimers();
+    });
     vi.useRealTimers();
   });
 
@@ -69,7 +72,6 @@ describe("use-toast hook", () => {
     });
 
     it("DISMISS_TOAST schedules removal", () => {
-      vi.useRealTimers();
       const state = {
         toasts: [{ id: "1", title: "Test" }],
       };
@@ -156,7 +158,9 @@ describe("use-toast hook", () => {
       });
 
       // Toast is removed after timeout
-      vi.advanceTimersByTime(5000);
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
       expect(result.current.toasts).toHaveLength(0);
     });
 
@@ -174,7 +178,9 @@ describe("use-toast hook", () => {
         result.current.dismiss();
       });
 
-      vi.advanceTimersByTime(5000);
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
       expect(result.current.toasts).toHaveLength(0);
     });
 
@@ -340,7 +346,9 @@ describe("use-toast hook", () => {
       });
 
       expect(result.current.toasts).toHaveLength(1);
-      vi.advanceTimersByTime(5000);
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
       expect(result.current.toasts).toHaveLength(0);
     });
   });

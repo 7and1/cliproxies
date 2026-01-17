@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Input } from "./input";
@@ -205,7 +206,7 @@ describe("Input component", () => {
     it("works as controlled component", async () => {
       const user = userEvent.setup();
       const TestComponent = () => {
-        const [value, setValue] = "";
+        const [value, setValue] = useState("");
         return (
           <Input value={value} onChange={(e) => setValue(e.target.value)} />
         );
@@ -215,13 +216,13 @@ describe("Input component", () => {
 
       await user.type(input, "test");
       // In controlled mode, typing should work if onChange updates state
-      expect(input).toHaveValue("");
+      expect(input).toHaveValue("test");
     });
   });
 
   describe("edge cases", () => {
     it("handles empty string value", () => {
-      render(<Input value="" />);
+      render(<Input value="" readOnly />);
       const input = screen.getByRole("textbox");
       expect(input).toHaveValue("");
     });
@@ -258,13 +259,8 @@ describe("Input component", () => {
   describe("different input types", () => {
     it("renders password input", () => {
       render(<Input type="password" />);
-      const input =
-        screen.getByLabelText(/password/i) || screen.getByRole("textbox");
       // Password inputs don't have a specific role
-      const inputs = document.querySelectorAll("input");
-      const passwordInput = Array.from(inputs).find(
-        (i) => i.type === "password",
-      );
+      const passwordInput = document.querySelector("input[type='password']");
       expect(passwordInput).toBeInTheDocument();
     });
 

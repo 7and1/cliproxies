@@ -2,7 +2,6 @@
 package middleware
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	dto "github.com/prometheus/client_model/go"
 )
 
 // MetricType represents the type of Prometheus metric
@@ -227,13 +227,25 @@ func looksLikeID(s string) bool {
 	if len(s) == 36 && strings.Count(s, "-") == 4 {
 		return true // UUID format
 	}
-	if len(s) >= 8 && len(s) <= 20 {
+	if len(s) > 0 {
+		isNumeric := true
 		for _, c := range s {
 			if c < '0' || c > '9' {
+				isNumeric = false
+				break
+			}
+		}
+		if isNumeric {
+			return true
+		}
+	}
+	if strings.Count(s, "-") >= 2 && len(s) >= 8 {
+		for _, c := range s {
+			if !(c == '-' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
 				return false
 			}
 		}
-		return true // Numeric ID
+		return true
 	}
 	return false
 }
@@ -597,13 +609,11 @@ func TestPrometheusMiddleware_StatusCodeLabels(t *testing.T) {
 	router.Use(m.Middleware())
 
 	statusCodes := []int{200, 201, 301, 400, 404, 500, 503}
-	for _, code := range statusCodes {
-		router.GET(fmt.Sprintf("/status/%d", code), func(c *gin.Context) {
-			statusStr := c.Param("code")
-			status, _ := strconv.Atoi(statusStr)
-			c.Status(status)
-		})
-	}
+	router.GET("/status/:code", func(c *gin.Context) {
+		statusStr := c.Param("code")
+		status, _ := strconv.Atoi(statusStr)
+		c.Status(status)
+	})
 
 	for _, code := range statusCodes {
 		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/status/%d", code), nil)
@@ -892,32 +902,19 @@ func TestPrometheusMiddleware_JSONMetrics(t *testing.T) {
 	// Get metrics as JSON
 	metrics := m.GetRegistry()
 	metricFamilies, _ := metrics.Gather()
-
-	// Convert to JSON
-	data, err := json.MarshalIndent(metricFamilies, "", "  ")
-	if err != nil {
-		t.Fatalf("Failed to marshal metrics to JSON: %v", err)
-	}
-
-	// Verify JSON contains expected fields
-	var result []map[string]interface{}
-	if err := json.Unmarshal(data, &result); err != nil {
-		t.Fatalf("Failed to unmarshal metrics JSON: %v", err)
-	}
-
 	found := false
-	for _, mf := range result {
-		if name, ok := mf["name"].(string); ok && strings.Contains(name, "requests_total") {
+	for _, mf := range metricFamilies {
+		if strings.Contains(mf.GetName(), "requests_total") {
 			found = true
-			if mf["type"] != "COUNTER" {
-				t.Errorf("Metric type = %v, want COUNTER", mf["type"])
+			if mf.GetType() != dto.MetricType_COUNTER {
+				t.Errorf("Metric type = %v, want COUNTER", mf.GetType().String())
 			}
 			break
 		}
 	}
 
 	if !found {
-		t.Error("requests_total metric not found in JSON output")
+		t.Error("requests_total metric not found in gathered metrics")
 	}
 }
 

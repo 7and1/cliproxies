@@ -160,8 +160,8 @@ describe("Badge component", () => {
 
   describe("edge cases", () => {
     it("handles empty content", () => {
-      render(<Badge></Badge>);
-      const badge = screen.queryByRole("generic");
+      const { container } = render(<Badge></Badge>);
+      const badge = container.querySelector('[data-slot="badge"]');
       expect(badge).toBeInTheDocument();
     });
 

@@ -72,6 +72,8 @@ func (h *HealthChecker) RegisterRoutes(engine *gin.Engine) {
 	engine.GET("/ready", h.ReadinessCheck)
 	engine.GET("/health/detail", h.DetailedHealthCheck)
 	engine.GET("/health/upstream", h.UpstreamHealthCheck)
+	// Deprecated basic metrics endpoint (kept for compatibility)
+	engine.GET("/metrics", h.Metrics)
 }
 
 // HealthCheck returns a simple health status

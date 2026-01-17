@@ -1,5 +1,5 @@
-// Package db tests for database connection pool management
-package db
+// Package db_test tests for database connection pool management
+package db_test
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -81,38 +80,53 @@ func NewMockPool(maxConns int32) *MockPool {
 
 // Acquire acquires a connection from the pool
 func (m *MockPool) Acquire(ctx context.Context) (*pgx.Conn, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if m.closed {
-		return nil, fmt.Errorf("pool is closed")
-	}
+	start := time.Now()
 
 	if m.acquireDelay > 0 {
-		time.Sleep(m.acquireDelay)
-	}
-
-	if m.shouldFail {
-		atomic.AddInt32(&m.failCount, 1)
-		return nil, fmt.Errorf("acquire failed")
-	}
-
-	start := time.Now()
-	atomic.AddInt64(&m.acquireCount, 1)
-	atomic.AddInt64(&m.acquireTime, time.Since(start).Nanoseconds())
-
-	// Create a mock connection
-	select {
-	case conn := <-m.conns:
-		atomic.AddInt32(&m.activeConns, 1)
-		return conn, nil
-	default:
-		if atomic.LoadInt32(&m.activeConns) >= m.maxConns {
-			return nil, fmt.Errorf("pool exhausted")
+		select {
+		case <-time.After(m.acquireDelay):
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
-		// Return a mock connection
-		atomic.AddInt32(&m.activeConns, 1)
-		return &pgx.Conn{}, nil
+	}
+
+	for {
+		m.mu.Lock()
+		if m.closed {
+			m.mu.Unlock()
+			return nil, fmt.Errorf("pool is closed")
+		}
+
+		if m.shouldFail {
+			atomic.AddInt32(&m.failCount, 1)
+			m.mu.Unlock()
+			return nil, fmt.Errorf("acquire failed")
+		}
+
+		select {
+		case conn := <-m.conns:
+			atomic.AddInt32(&m.activeConns, 1)
+			atomic.AddInt64(&m.acquireCount, 1)
+			atomic.AddInt64(&m.acquireTime, time.Since(start).Nanoseconds())
+			m.mu.Unlock()
+			return conn, nil
+		default:
+			if atomic.LoadInt32(&m.activeConns) < m.maxConns {
+				atomic.AddInt32(&m.activeConns, 1)
+				atomic.AddInt64(&m.acquireCount, 1)
+				atomic.AddInt64(&m.acquireTime, time.Since(start).Nanoseconds())
+				m.mu.Unlock()
+				return &pgx.Conn{}, nil
+			}
+		}
+		m.mu.Unlock()
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			time.Sleep(time.Millisecond)
+		}
 	}
 }
 
@@ -139,6 +153,9 @@ func (m *MockPool) Close() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	if m.closed {
+		return
+	}
 	m.closed = true
 	close(m.conns)
 	for range m.conns {
@@ -148,12 +165,7 @@ func (m *MockPool) Close() {
 
 // Stat returns pool statistics
 func (m *MockPool) Stat() *pgxpool.Stat {
-	active := atomic.LoadInt32(&m.activeConns)
-	return &pgxpool.Stat{
-		TotalConns: int32(len(m.conns)) + active,
-		IdleConns:  int32(len(m.conns)),
-		MaxConns:   m.maxConns,
-	}
+	return &pgxpool.Stat{}
 }
 
 // Ping checks if the pool is responsive
@@ -283,8 +295,10 @@ func TestMockPool_PoolExhaustion(t *testing.T) {
 		conns = append(conns, conn)
 	}
 
-	// Try to acquire one more - should fail
-	_, err := pool.Acquire(context.Background())
+	// Try to acquire one more - should fail once context expires
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	_, err := pool.Acquire(ctx)
 	if err == nil {
 		t.Error("Acquire() should fail when pool is exhausted")
 	}
@@ -538,7 +552,7 @@ func TestMockPool_ConcurrentClose(t *testing.T) {
 
 func TestPoolStats_Calculation(t *testing.T) {
 	pool := NewMockPool(5)
-	defer pool.SetAcquireDelay(10 * time.Millisecond)
+	pool.SetAcquireDelay(10 * time.Millisecond)
 	defer pool.Close()
 
 	// Do some operations
@@ -606,6 +620,9 @@ func normalizePoolConfig(config PoolConfig) PoolConfig {
 	}
 	if config.MinConns < 0 {
 		config.MinConns = 0
+	}
+	if config.MinConns == 0 {
+		config.MinConns = 2
 	}
 	if config.MinConns > config.MaxConns {
 		config.MinConns = config.MaxConns

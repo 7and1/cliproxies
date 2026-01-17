@@ -101,7 +101,7 @@ describe("Button component", () => {
     it("applies icon-lg size", () => {
       render(<Button size="icon-lg">Test</Button>);
       const button = screen.getByRole("button");
-      expect button).toHaveClass("size-10");
+      expect(button).toHaveClass("size-10");
     });
   });
 

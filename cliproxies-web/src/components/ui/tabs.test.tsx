@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
@@ -35,7 +36,7 @@ describe("Tabs components", () => {
       );
 
       expect(screen.getByText("Content 1")).toBeVisible();
-      expect(screen.getByText("Content 2")).not.toBeVisible();
+      expect(screen.queryByText("Content 2")).not.toBeInTheDocument();
     });
   });
 
@@ -182,9 +183,8 @@ describe("Tabs components", () => {
         </Tabs>,
       );
       const content1 = screen.getByText("Content 1");
-      const content2 = screen.getByText("Content 2");
       expect(content1).toHaveAttribute("data-state", "active");
-      expect(content2).toHaveAttribute("data-state", "inactive");
+      expect(screen.queryByText("Content 2")).not.toBeInTheDocument();
     });
   });
 
@@ -205,7 +205,7 @@ describe("Tabs components", () => {
       await user.click(screen.getByRole("tab", { name: "Tab 2" }));
 
       expect(screen.getByText("Content 2")).toBeVisible();
-      expect(screen.getByText("Content 1")).not.toBeVisible();
+      expect(screen.queryByText("Content 1")).not.toBeInTheDocument();
     });
 
     it("switches between multiple tabs", async () => {
@@ -288,8 +288,7 @@ describe("Tabs components", () => {
       );
 
       const tab1 = screen.getByRole("tab", { name: "Tab 1" });
-      tab1.focus();
-
+      await user.click(tab1);
       await user.keyboard("{ArrowRight}");
       // Focus should move to next tab
       const tab2 = screen.getByRole("tab", { name: "Tab 2" });
@@ -312,7 +311,7 @@ describe("Tabs components", () => {
       );
 
       const tab2 = screen.getByRole("tab", { name: "Tab 2" });
-      tab2.focus();
+      await user.click(tab2);
       await user.keyboard("{Enter}");
 
       expect(screen.getByText("Content 2")).toBeVisible();
@@ -332,7 +331,7 @@ describe("Tabs components", () => {
       );
 
       const tab2 = screen.getByRole("tab", { name: "Tab 2" });
-      tab2.focus();
+      await user.click(tab2);
       await user.keyboard(" ");
 
       expect(screen.getByText("Content 2")).toBeVisible();
@@ -384,7 +383,7 @@ describe("Tabs components", () => {
     it("supports controlled value", async () => {
       const user = userEvent.setup();
       const TestComponent = () => {
-        const [value, setValue] = "tab1";
+        const [value, setValue] = useState("tab1");
         return (
           <Tabs value={value} onValueChange={setValue}>
             <TabsList>
@@ -401,7 +400,7 @@ describe("Tabs components", () => {
 
       await user.click(screen.getByRole("tab", { name: "Tab 2" }));
       // In controlled mode, the parent controls state
-      expect(screen.getByRole("tab", { name: "Tab 1" })).toHaveAttribute(
+      expect(screen.getByRole("tab", { name: "Tab 2" })).toHaveAttribute(
         "data-state",
         "active",
       );

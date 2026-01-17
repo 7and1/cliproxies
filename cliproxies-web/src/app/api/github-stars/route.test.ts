@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GET } from "./github-stars/route";
+import { GET } from "./route";
 import { fetchRepoStars } from "@/lib/github";
 import * as security from "@/lib/security";
 
@@ -25,6 +25,13 @@ vi.mock("@/lib/security", () => ({
 describe("GitHub Stars API Route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(security.validateGitHubRepo).mockReturnValue(true);
+    vi.mocked(security.sanitizeInput).mockImplementation((input: string) => input);
+    vi.mocked(security.checkRateLimit).mockReturnValue({
+      allowed: true,
+      remaining: 29,
+      resetAt: Date.now() + 60000,
+    });
   });
 
   describe("GET handler", () => {
@@ -34,7 +41,7 @@ describe("GitHub Stars API Route", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data).toEqual({ error: "Missing repo" });
+      expect(data).toEqual({ error: "Repository parameter is required" });
     });
 
     it("returns 400 when repo parameter is empty", async () => {
@@ -43,7 +50,7 @@ describe("GitHub Stars API Route", () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data).toEqual({ error: "Missing repo" });
+      expect(data).toEqual({ error: "Repository parameter is required" });
     });
 
     it("accepts full GitHub URL", async () => {
@@ -130,9 +137,9 @@ describe("GitHub Stars API Route", () => {
   });
 
   describe("revalidation", () => {
-    it("has revalidate set to 86_400 seconds (24 hours)", () => {
+    it("has revalidate set to 86_400 seconds (24 hours)", async () => {
       // The revalidate is set at the module level
-      const routeModule = require("./github-stars/route");
+      const routeModule = await import("./route");
       expect(routeModule.revalidate).toBe(86_400);
     });
   });
@@ -149,8 +156,8 @@ describe("GitHub Stars API Route", () => {
       const response = await GET(request);
       const data = await response.json();
 
-      // Should return 0 when fetch fails
-      expect(data).toEqual({ stars: 0 });
+      expect(response.status).toBe(502);
+      expect(data).toEqual({ error: "Failed to fetch repository data" });
     });
 
     it("handles timeout from fetchRepoStars", async () => {
@@ -163,9 +170,9 @@ describe("GitHub Stars API Route", () => {
       );
       const response = await GET(request);
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(502);
       const data = await response.json();
-      expect(data.stars).toBe(0);
+      expect(data).toEqual({ error: "Failed to fetch repository data" });
     });
   });
 

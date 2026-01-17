@@ -282,13 +282,6 @@
 
 .animate-shimmer {
   animation: shimmer 2s ease-in-out infinite;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    hsl(45 100% 50% / 0.1),
-    transparent
-  );
-  background-size: 200% 100%;
 }
 
 .animate-pulse-slow {

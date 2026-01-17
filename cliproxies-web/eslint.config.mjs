@@ -10,14 +10,17 @@ const config = [
   {
     ignores: [
       ".next/**",
+      ".open-next/**",
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "cloudflare-env.d.ts",
       "**/*.test.ts",
       "**/*.test.tsx",
       "**/test-utils.tsx",
       "**/setup.ts",
       "**/test/**",
+      "e2e/**",
     ],
   },
   {

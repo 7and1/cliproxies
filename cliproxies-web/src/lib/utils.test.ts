@@ -45,7 +45,7 @@ describe("cn (className utility)", () => {
 
   it("handles complex Tailwind class conflicts", () => {
     expect(cn("w-4 h-4 w-6")).toBe("h-4 w-6");
-    expect(cn("flex flex-col")).toBe("flex-col");
+    expect(cn("flex flex-col")).toBe("flex flex-col");
     expect(cn("px-2 px-4 py-1")).toBe("px-4 py-1");
   });
 });

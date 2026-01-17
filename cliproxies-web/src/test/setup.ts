@@ -10,12 +10,19 @@ afterEach(() => {
   cleanup();
 });
 
-// Mock IntersectionObserver
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-})) as unknown as typeof IntersectionObserver;
+// Mock IntersectionObserver as a real constructor for Next.js hooks
+class MockIntersectionObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  takeRecords = vi.fn();
+  root = null;
+  rootMargin = "";
+  thresholds = [];
+}
+
+global.IntersectionObserver =
+  MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock requestAnimationFrame
 global.requestAnimationFrame = (callback: FrameRequestCallback) =>
@@ -43,3 +50,16 @@ Object.assign(navigator, {
     readText: vi.fn(async () => ""),
   },
 });
+
+try {
+  Object.defineProperty(HTMLFormElement.prototype, "requestSubmit", {
+    configurable: true,
+    value: function requestSubmit() {
+      this.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    },
+  });
+} catch {
+  // Fallback in case the property is not configurable.
+}

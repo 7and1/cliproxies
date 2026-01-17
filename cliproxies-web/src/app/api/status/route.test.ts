@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GET } from "./status/route";
+import { GET } from "./route";
 import { PROVIDERS, fetchProviderStatus } from "@/lib/status";
 
 // Mock the status module
@@ -131,8 +131,8 @@ describe("Status API Route", () => {
   });
 
   describe("revalidation", () => {
-    it("has revalidate set to 300 seconds (5 minutes)", () => {
-      const routeModule = require("./status/route");
+    it("has revalidate set to 300 seconds (5 minutes)", async () => {
+      const routeModule = await import("./route");
       expect(routeModule.revalidate).toBe(300);
     });
   });
@@ -225,18 +225,18 @@ describe("Status API Route", () => {
 
   describe("edge cases", () => {
     it("handles empty providers array", async () => {
-      // Override the mock for this test
-      const { PROVIDERS: originalProviders } = require("@/lib/status");
-      vi.doMock("@/lib/status", () => ({
-        PROVIDERS: [],
-        fetchProviderStatus: vi.fn(),
-      }));
+      const originalProviders = [...PROVIDERS];
+      PROVIDERS.length = 0;
 
-      const response = await GET();
-      const data = await response.json();
+      try {
+        const response = await GET();
+        const data = await response.json();
 
-      expect(Array.isArray(data)).toBe(true);
-      expect(data).toHaveLength(0);
+        expect(Array.isArray(data)).toBe(true);
+        expect(data).toHaveLength(0);
+      } finally {
+        PROVIDERS.push(...originalProviders);
+      }
     });
 
     it("handles single provider", async () => {

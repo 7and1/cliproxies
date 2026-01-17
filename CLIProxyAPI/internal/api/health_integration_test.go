@@ -3,6 +3,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,7 +15,6 @@ import (
 	gin "github.com/gin-gonic/gin"
 	configaccess "github.com/router-for-me/CLIProxyAPI/v6/internal/access/config_access"
 	proxyconfig "github.com/router-for-me/CLIProxyAPI/v6/internal/config"
-	sdkaccess "github.com/router-for-me/CLIProxyAPI/v6/sdk/access"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/auth"
 	sdkconfig "github.com/router-for-me/CLIProxyAPI/v6/sdk/config"
 )
@@ -70,7 +70,7 @@ func TestHealthCheckEndpoints(t *testing.T) {
 			path:           "/metrics",
 			method:         http.MethodGet,
 			wantStatus:     http.StatusOK,
-			wantFields:     []string{"alloc", "total_alloc", "sys", "num_gc"},
+			wantFields:     []string{"memory"},
 			dontWantFields: []string{},
 		},
 		{
@@ -102,6 +102,18 @@ func TestHealthCheckEndpoints(t *testing.T) {
 			for _, field := range tt.wantFields {
 				if _, exists := response[field]; !exists {
 					t.Errorf("Response missing field: %s. Available fields: %v", field, getKeys(response))
+				}
+			}
+
+			if tt.name == "metrics includes memory fields" {
+				if memory, ok := response["memory"].(map[string]interface{}); ok {
+					for _, field := range []string{"alloc", "total_alloc", "sys", "num_gc"} {
+						if _, exists := memory[field]; !exists {
+							t.Errorf("Memory missing field: %s. Available fields: %v", field, getKeys(memory))
+						}
+					}
+				} else {
+					t.Errorf("memory field should be an object")
 				}
 			}
 

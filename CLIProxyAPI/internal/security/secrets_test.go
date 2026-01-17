@@ -2,6 +2,7 @@
 package security
 
 import (
+	"encoding/base64"
 	"os"
 	"testing"
 )
@@ -385,7 +386,5 @@ func decodeBase64(s string) ([]byte, error) {
 }
 
 func decodeString(s string) ([]byte, error) {
-	// This is a placeholder - actual implementation would use base64.StdEncoding.DecodeString
-	// For testing purposes, we'll just check if the string is valid base64 characters
-	return []byte(s), nil
+	return base64.StdEncoding.DecodeString(s)
 }

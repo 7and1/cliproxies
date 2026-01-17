@@ -83,7 +83,10 @@ func (j *JWTMiddleware) GenerateToken(claims JWTClaims) (string, error) {
 // ValidateToken validates a JWT token and returns the claims
 func (j *JWTMiddleware) ValidateToken(tokenString string) (*JWTClaims, error) {
 	// Remove "Bearer " prefix if present
-	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	tokenString = strings.TrimSpace(tokenString)
+	if strings.HasPrefix(strings.ToLower(tokenString), "bearer ") {
+		tokenString = strings.TrimSpace(tokenString[7:])
+	}
 
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Validate signing method
@@ -154,6 +157,12 @@ func (j *JWTMiddleware) Middleware() gin.HandlerFunc {
 // shouldSkipPath checks if a path should skip authentication
 func (j *JWTMiddleware) shouldSkipPath(path string) bool {
 	for _, skipPath := range j.config.SkipPaths {
+		if skipPath == "/" {
+			if path == "/" {
+				return true
+			}
+			continue
+		}
 		if strings.HasPrefix(path, skipPath) {
 			return true
 		}

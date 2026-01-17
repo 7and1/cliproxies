@@ -5,6 +5,7 @@ package structured
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,13 +17,20 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/config"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/logging"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/util"
-	"github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/auth"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
 	configureOnce sync.Once
+)
+
+// Context keys for structured logging metadata.
+type authContextKey string
+
+const (
+	ContextKeyAuthID   authContextKey = "auth_id"
+	ContextKeyProvider authContextKey = "provider"
 )
 
 // LogLevel represents the severity level for log entries
@@ -116,17 +124,17 @@ func (f *JSONFormatter) Format(entry *log.Entry) ([]byte, error) {
 	
 	// Add context fields if available
 	if entry.Context != nil {
-		if authID, ok := entry.Context.Value(auth.ContextKeyAuthID).(string); ok {
+		if authID, ok := entry.Context.Value(ContextKeyAuthID).(string); ok {
 			data["auth_id"] = authID
 		}
-		if provider, ok := entry.Context.Value(auth.ContextKeyProvider).(string); ok {
+		if provider, ok := entry.Context.Value(ContextKeyProvider).(string); ok {
 			data["provider"] = provider
 		}
 	}
-	
+
 	var buffer bytes.Buffer
-	encoder := log.JSONEncoder{}
-	if err := encoder.Encode(data, &buffer); err != nil {
+	encoder := json.NewEncoder(&buffer)
+	if err := encoder.Encode(data); err != nil {
 		return nil, fmt.Errorf("failed to encode log entry: %w", err)
 	}
 	
@@ -191,7 +199,7 @@ func SetupStructuredLogger(cfg Config) error {
 		
 		// Register exit handler
 		log.RegisterExitHandler(func() {
-			if file, ok := log.Out.(*lumberjack.Logger); ok {
+			if file, ok := log.StandardLogger().Out.(*lumberjack.Logger); ok {
 				_ = file.Close()
 			}
 		})
@@ -272,10 +280,10 @@ func (h *ContextHook) Fire(entry *log.Entry) error {
 	}
 	
 	// Add auth information from context
-	if authID, ok := entry.Context.Value(auth.ContextKeyAuthID).(string); ok {
+	if authID, ok := entry.Context.Value(ContextKeyAuthID).(string); ok {
 		entry.Data["auth_id"] = authID
 	}
-	if provider, ok := entry.Context.Value(auth.ContextKeyProvider).(string); ok {
+	if provider, ok := entry.Context.Value(ContextKeyProvider).(string); ok {
 		entry.Data["provider"] = provider
 	}
 	
@@ -400,10 +408,10 @@ func Fatalf(format string, args ...interface{}) {
 func WithAuthContext(parent context.Context, authID, provider string) context.Context {
 	ctx := parent
 	if authID != "" {
-		ctx = context.WithValue(ctx, auth.ContextKeyAuthID, authID)
+		ctx = context.WithValue(ctx, ContextKeyAuthID, authID)
 	}
 	if provider != "" {
-		ctx = context.WithValue(ctx, auth.ContextKeyProvider, provider)
+		ctx = context.WithValue(ctx, ContextKeyProvider, provider)
 	}
 	return ctx
 }

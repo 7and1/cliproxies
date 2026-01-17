@@ -4,37 +4,37 @@ import { useEffect, useState } from "react";
 
 export type OS = "mac" | "windows" | "linux" | "other";
 
-// Cache the OS detection result since it won't change during a session
+// Cache the OS detection result for the current user agent string.
 let cachedOS: OS | null = null;
+let cachedUserAgent: string | null = null;
 
 function detectOS(): OS {
-  if (cachedOS) return cachedOS;
-
   if (typeof window === "undefined") return "other";
 
-  const ua = window.navigator.userAgent;
-  if (ua.includes("Mac")) {
+  const ua = window.navigator.userAgent || "";
+  if (cachedOS && cachedUserAgent === ua) return cachedOS;
+
+  const normalizedUA = ua.toLowerCase();
+  if (normalizedUA.includes("mac")) {
     cachedOS = "mac";
-  } else if (ua.includes("Win")) {
+  } else if (normalizedUA.includes("win")) {
     cachedOS = "windows";
-  } else if (ua.includes("Linux")) {
+  } else if (normalizedUA.includes("linux")) {
     cachedOS = "linux";
   } else {
     cachedOS = "other";
   }
 
+  cachedUserAgent = ua;
   return cachedOS;
 }
 
 export function useOS(): OS {
   const [os, setOS] = useState<OS>(detectOS());
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     setOS(detectOS());
   }, []);
 
-  // Return cached value during SSR, actual value after hydration
-  return mounted ? os : "other";
+  return os;
 }

@@ -228,7 +228,13 @@ function observeFCP(callback: (metric: Metric) => void): () => void {
  * Observes Time to First Byte (TTFB)
  */
 function observeTTFB(callback: (metric: Metric) => void): () => void {
-  if (typeof window === "undefined") return () => {};
+  if (
+    typeof window === "undefined" ||
+    typeof performance === "undefined" ||
+    typeof performance.getEntriesByType !== "function"
+  ) {
+    return () => {};
+  }
 
   const navigation = performance.getEntriesByType(
     "navigation",
@@ -275,7 +281,13 @@ export function initWebVitals() {
  * Get current page navigation timing
  */
 export function getNavigationTiming() {
-  if (typeof window === "undefined") return null;
+  if (
+    typeof window === "undefined" ||
+    typeof performance === "undefined" ||
+    typeof performance.getEntriesByType !== "function"
+  ) {
+    return null;
+  }
 
   const navigation = performance.getEntriesByType(
     "navigation",
@@ -307,7 +319,13 @@ export function getNavigationTiming() {
  * Get resource timing stats
  */
 export function getResourceTimingStats() {
-  if (typeof window === "undefined") return null;
+  if (
+    typeof window === "undefined" ||
+    typeof performance === "undefined" ||
+    typeof performance.getEntriesByType !== "function"
+  ) {
+    return null;
+  }
 
   const resources = performance.getEntriesByType(
     "resource",

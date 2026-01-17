@@ -144,19 +144,19 @@ describe("AppCard component", () => {
 
     it("includes URL meta tag", () => {
       render(<AppCard app={mockApp} />);
-      const link = screen.queryBySelector("link[itemprop='url']");
+      const link = document.querySelector("link[itemprop='url']");
       expect(link).toHaveAttribute("href", "https://github.com/test/repo");
     });
 
     it("includes operating system meta tag", () => {
       render(<AppCard app={mockApp} />);
-      const os = screen.queryBySelector("meta[itemprop='operatingSystem']");
+      const os = document.querySelector("meta[itemprop='operatingSystem']");
       expect(os).toHaveAttribute("content", "mac, windows");
     });
 
     it("includes application category meta tag", () => {
       render(<AppCard app={mockApp} />);
-      const category = screen.queryBySelector(
+      const category = document.querySelector(
         "meta[itemprop='applicationCategory']",
       );
       expect(category).toHaveAttribute("content", "DeveloperApplication");
@@ -164,7 +164,7 @@ describe("AppCard component", () => {
 
     it("includes rating meta when stars provided", () => {
       render(<AppCard app={mockApp} stars={5000} />);
-      const rating = screen.queryBySelector("meta[itemprop='ratingValue']");
+      const rating = document.querySelector("meta[itemprop='ratingValue']");
       expect(rating).toHaveAttribute("content", "5000");
     });
   });

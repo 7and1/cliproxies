@@ -59,8 +59,11 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
-const addToRemoveQueue = (toastId: string) => {
-  if (toastTimeouts.has(toastId)) return;
+const addToRemoveQueue = (toastId: string, delay = TOAST_REMOVE_DELAY) => {
+  const existingTimeout = toastTimeouts.get(toastId);
+  if (existingTimeout) {
+    clearTimeout(existingTimeout);
+  }
 
   const timeout = setTimeout(() => {
     toastTimeouts.delete(toastId);
@@ -68,7 +71,7 @@ const addToRemoveQueue = (toastId: string) => {
       type: "REMOVE_TOAST",
       toastId: toastId,
     });
-  }, TOAST_REMOVE_DELAY);
+  }, delay);
 
   toastTimeouts.set(toastId, timeout);
 };
@@ -93,10 +96,10 @@ export const reducer = (state: State, action: Action): State => {
       const { toastId } = action;
 
       if (toastId) {
-        addToRemoveQueue(toastId);
+        addToRemoveQueue(toastId, 0);
       } else {
         state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id);
+          addToRemoveQueue(toast.id, 0);
         });
       }
 
@@ -129,6 +132,14 @@ const listeners: Array<(state: State) => void> = [];
 
 let memoryState: State = { toasts: [] };
 
+export function __resetToastState() {
+  toastTimeouts.forEach((timeout) => clearTimeout(timeout));
+  toastTimeouts.clear();
+  listeners.length = 0;
+  memoryState = { toasts: [] };
+  count = 0;
+}
+
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action);
   listeners.forEach((listener) => {
@@ -155,6 +166,7 @@ function toast({ ...props }: Toast) {
       id,
     },
   });
+  addToRemoveQueue(id);
 
   return {
     id: id,
@@ -174,7 +186,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,

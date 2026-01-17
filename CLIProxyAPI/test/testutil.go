@@ -98,7 +98,10 @@ func (ts *TestServer) Request(t *testing.T, method, path string, body io.Reader,
 
 	w := httptest.NewRecorder()
 	if ts.APIServer != nil {
-		ts.APIServer.Engine.ServeHTTP(w, req)
+		engine := ts.APIServer.Engine()
+		if engine != nil {
+			engine.ServeHTTP(w, req)
+		}
 	} else {
 		ts.Engine.ServeHTTP(w, req)
 	}

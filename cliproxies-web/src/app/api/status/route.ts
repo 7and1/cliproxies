@@ -1,11 +1,27 @@
-import { PROVIDERS, fetchProviderStatus } from "@/lib/status";
-
 export const revalidate = 300;
 
 export async function GET() {
-  const results = await Promise.all(
+  const { PROVIDERS, fetchProviderStatus } = await import("@/lib/status");
+
+  const results = await Promise.allSettled(
     PROVIDERS.map((provider) => fetchProviderStatus(provider)),
   );
 
-  return Response.json(results);
+  const statuses = results.map((result, index) => {
+    if (result.status === "fulfilled") {
+      return result.value;
+    }
+
+    const provider = PROVIDERS[index];
+    return {
+      id: provider.id,
+      name: provider.name,
+      indicator: "unknown",
+      description: "Status page unavailable",
+      statusPage: provider.statusPage,
+      checkedAt: new Date(),
+    };
+  });
+
+  return Response.json(statuses);
 }

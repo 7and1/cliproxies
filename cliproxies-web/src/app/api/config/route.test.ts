@@ -1,9 +1,10 @@
 import { POST } from "./route";
 import { NextRequest } from "next/server";
+import { vi } from "vitest";
 
 // Mock the generateConfig function
-jest.mock("@/lib/config-generator", () => ({
-  generateConfig: jest.fn(
+vi.mock("@/lib/config-generator", () => ({
+  generateConfig: vi.fn(
     () => 'host: ""\nport: 8317\napi-keys:\n- test-key\n',
   ),
 }));
